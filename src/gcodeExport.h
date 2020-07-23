@@ -112,6 +112,7 @@ private:
     std::string machine_buildplate_type;
 
     std::ostream* output_stream;
+    std::ostream* output_file_stream;
     std::string new_line;
 
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
@@ -226,6 +227,8 @@ public:
     std::string getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setLayerNr(unsigned int layer_nr);
+
+    void setOutputFileStream(std::ostream* stream);
 
     void setOutputStream(std::ostream* stream);
 
