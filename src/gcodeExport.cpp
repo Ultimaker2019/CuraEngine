@@ -314,9 +314,9 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             double diff = sqrt(x*x+y*y);
             double e = 2.0 * this->firstLineSection * diff;
             if(e <= 0.0)
-                fprintf(f, " ;#EN_FIRSTLINE#%c% 0.5f",extruderCharacter[extruderNr], 10.0);
+                fprintf(f, " %c%0.5f",extruderCharacter[extruderNr], 10.0);
             else
-                fprintf(f, " ;#EN_FIRSTLINE#%c% 0.5f",extruderCharacter[extruderNr], e);
+                fprintf(f, " %c%0.5f",extruderCharacter[extruderNr], e);
             firstline = 1;
         }
 #endif
@@ -326,9 +326,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 #if EN_FIRSTLINE == 1
         if(firstline == 1)
         {
-            fprintf(f, ";#EN_FIRSTLINE#G92 %c0\n", extruderCharacter[extruderNr]);
-            fprintf(f, ";#EN_FIRSTLINE#G92 %c0.5\n", extruderCharacter[extruderNr]);
-            fprintf(f, ";#EN_FIRSTLINE#G92 %c0\n", extruderCharacter[extruderNr]);
+            fprintf(f, "G92 %c0\n", extruderCharacter[extruderNr]);
             firstline = 2;
         }
 #endif
