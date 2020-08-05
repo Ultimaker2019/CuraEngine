@@ -776,7 +776,7 @@ private:
         //If we changed extruder, print the wipe/prime tower for this nozzle;
         gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &supportConfig);
         Polygons fillPolygons;
-        generateLineInfill(storage.wipeTower, fillPolygons, config.extrusionWidth, config.extrusionWidth, config.infillOverlap, 45 + 90 * (layerNr % 2));
+        generateLineInfill(storage.wipeTower, fillPolygons, config.extrusionWidth, config.extrusionWidth * 2, config.infillOverlap, 45 + 90 * (layerNr % 2));
         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &supportConfig);
 
         //Make sure we wipe the old extruder on the wipe tower.
