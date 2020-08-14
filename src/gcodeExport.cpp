@@ -536,6 +536,15 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
 
 void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config)
 {
+    Point tmpPoint = lastPosition;
+    // Reset skin layer print order
+    if(strcmp(config->name,"SKIN") == 0)
+    {
+        if(polygons.size() > 0 && polygons[polygons.size()-1].size() > 0)
+            tmpPoint = polygons[0][0];
+    }
+    PathOrderOptimizer orderOptimizer(tmpPoint);
+    //PathOrderOptimizer orderOptimizer(lastPosition);
     PathOrderOptimizer orderOptimizer(lastPosition);
     for(unsigned int i=0;i<polygons.size();i++)
         orderOptimizer.addPolygon(polygons[i]);
