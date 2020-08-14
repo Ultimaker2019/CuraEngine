@@ -18,3 +18,5 @@ build/*
 NUL
 CuraEngine.layout
 CuraEngine.cbp
+.svn
+/CMakeLists.txt.user
