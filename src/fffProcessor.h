@@ -371,6 +371,8 @@ private:
         fileNr++;
 
         unsigned int totalLayers = storage.volumes[0].layers.size();
+        gcode.writeComment("Force Re-Check is on");
+        gcode.writeLine("M305 S1");
         gcode.writeComment("Layer count: %d", totalLayers);
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
@@ -528,6 +530,8 @@ private:
         cura::log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
         gcode.tellFileSize();
         gcode.writeFanCommand(0);
+        gcode.writeComment("Force Re-Check is off");
+        gcode.writeLine("M305 S0");
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
         maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z - config.objectSink);
