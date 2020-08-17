@@ -104,4 +104,102 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     }
 }
 
+void generateLineConnectInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
+{
+    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
+    PointMatrix matrix(rotation);
+    
+    outline.applyMatrix(matrix);
+    
+    AABB boundary(outline);
+    
+    boundary.min.X = ((boundary.min.X / lineSpacing) - 1) * lineSpacing;
+    int lineCount = (boundary.max.X - boundary.min.X + (lineSpacing - 1)) / lineSpacing;
+    vector<vector<int64_t> > cutList;
+    for(int n=0; n<lineCount; n++)
+        cutList.push_back(vector<int64_t>());
+
+    for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
+    {
+        Point p1 = outline[polyNr][outline[polyNr].size()-1];
+        for(unsigned int i=0; i < outline[polyNr].size(); i++)
+        {
+            Point p0 = outline[polyNr][i];
+            int idx0 = (p0.X - boundary.min.X) / lineSpacing;
+            int idx1 = (p1.X - boundary.min.X) / lineSpacing;
+            int64_t xMin = p0.X, xMax = p1.X;
+            if (p0.X > p1.X) { xMin = p1.X; xMax = p0.X; }
+            if (idx0 > idx1) { int tmp = idx0; idx0 = idx1; idx1 = tmp; }
+            for(int idx = idx0; idx<=idx1; idx++)
+            {
+                int x = (idx * lineSpacing) + boundary.min.X + lineSpacing / 2;
+                if (x < xMin) continue;
+                if (x >= xMax) continue;
+                int y = p0.Y + (p1.Y - p0.Y) * (x - p0.X) / (p1.X - p0.X);
+                cutList[idx].push_back(y);
+            }
+            p1 = p0;
+        }
+    }
+    
+    //definition for the starting and ending points of the support line
+    Point tmpStartP;
+    Point tmpEndP;
+    Point tmpCenterP;
+    int tmpXSpace;
+
+    int idx = 0;
+    for(int64_t x = boundary.min.X + lineSpacing / 2; x < boundary.max.X; x += lineSpacing)
+    {
+        tmpXSpace = x / lineSpacing % 2;
+        qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
+        {
+            for(unsigned int i = 0; i + 1 < cutList[idx].size(); i += 2)
+            {
+                if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 5)
+                    continue;
+                if(idx != 0 )
+                {
+                    if(tmpXSpace == 0 && tmpStartP.X != 0 && tmpStartP.Y != 0 && x != 0 && cutList[idx][0] != 0)
+                    {
+                        tmpCenterP = Point((tmpStartP.X + x) / 2, (tmpStartP.Y + cutList[idx][0]) / 2);
+                        if(outline.inside(tmpCenterP))
+                        {
+                            PolygonRef p0 = result.newPoly();
+                            p0.add(matrix.unapply(tmpStartP));
+                            p0.add(matrix.unapply(Point(x, cutList[idx][0])));
+                        }
+                    }
+                    else if(tmpXSpace != 0 && tmpEndP.X !=0 && tmpEndP.Y!= 0 && i+1 < cutList[idx].size() && i+2 >= cutList[idx].size() && x != 0 && cutList[idx][i+1] != 0 )
+                    {
+                        tmpCenterP = Point((tmpEndP.X + x) / 2, (tmpEndP.Y + cutList[idx][i+1]) / 2);
+                        if(outline.inside(tmpCenterP))
+                        {
+                            PolygonRef p0 = result.newPoly();
+                            p0.add(matrix.unapply(tmpEndP));
+                            p0.add(matrix.unapply(Point(x, cutList[idx][i+1])));
+                        }
+                    }
+                }
+
+                PolygonRef p = result.newPoly();
+                p.add(matrix.unapply(Point(x, cutList[idx][i])));
+                p.add(matrix.unapply(Point(x, cutList[idx][i+1])));
+
+                if(i+1 < cutList[idx].size() && i+2 >= cutList[idx].size())
+                {
+                    tmpStartP = Point(x, cutList[idx][0]);
+                    tmpEndP = Point(x, cutList[idx][i+1]);
+                }else
+                {
+                    tmpStartP = Point(0, 0);
+                    tmpEndP = Point(0, 0);
+                    tmpCenterP = Point(0, 0);
+                }
+            }
+        }
+        idx += 1;
+    }
+}
+
 }//namespace cura
