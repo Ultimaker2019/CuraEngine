@@ -674,7 +674,7 @@ private:
                 if (layerNr > 0)
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
                 // Set the line width of the first layer as the normal value, and set the line width of each layer upward to the original 98.5% to avoid overflow
-                generateLineInfill(outline, skinPolygons, extrusionWidth, (layerNr == 0)?extrusionWidth:extrusionWidth*99/100, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                generateLineInfill(outline, skinPolygons, extrusionWidth, (layerNr == 0)?extrusionWidth:extrusionWidth*995/1000, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
             }
             if (config.enableCombing == COMBING_NOSKIN)
             {
