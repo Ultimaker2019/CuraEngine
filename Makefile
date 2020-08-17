@@ -10,7 +10,7 @@ BUILD_TYPE = RELEASE
 
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
+CFLAGS += -c -Wall -Wextra -Wold-style-cast -Wno-old-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
 	CFLAGS+=-ggdb -Og -g
