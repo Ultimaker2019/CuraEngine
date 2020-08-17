@@ -42,12 +42,36 @@ void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int suppor
             Point3 v0 = vol->points[face->index[0]].p;
             Point3 v1 = vol->points[face->index[1]].p;
             Point3 v2 = vol->points[face->index[2]].p;
-            
+
+            double p_v0[3], p_v1[3], p_v2[3];
+            p_v0[0] = double(v0.x);
+            p_v0[1] = double(v0.y);
+            p_v0[2] = double(v0.z);
+
+            p_v1[0] = double(v1.x);
+            p_v1[1] = double(v1.y);
+            p_v1[2] = double(v1.z);
+
+            p_v2[0] = double(v2.x);
+            p_v2[1] = double(v2.y);
+            p_v2[2] = double(v2.z);
+
+            double p_v10[3] = {p_v1[0] - p_v0[0], p_v1[1] - p_v0[1], p_v1[2] - p_v0[2]};
+            double p_v20[3] = {p_v2[0] - p_v0[0], p_v2[1] - p_v0[1], p_v2[2] - p_v0[2]};
+            double p_normal[3];
+            p_normal[0] = p_v10[1] * p_v20[2] - p_v10[2] * p_v20[1];
+            p_normal[1] = p_v10[2] * p_v20[0] - p_v10[0] * p_v20[2];
+            p_normal[2] = p_v10[0] * p_v20[1] - p_v10[1] * p_v20[0];
+
+            double p_normal_vsize = sqrt(p_normal[0] * p_normal[0] + p_normal[1] * p_normal[1] + p_normal[2] * p_normal[2]);
+            double cosAngle = fabs(p_normal[2] / p_normal_vsize);
+
+/*
             Point3 normal = (v1 - v0).cross(v2 - v0);
             int32_t normalSize = normal.vSize();
             
             double cosAngle = fabs(double(normal.z) / double(normalSize));
-            
+*/
             v0.x = (v0.x - storage.gridOffset.X) / storage.gridScale;
             v0.y = (v0.y - storage.gridOffset.Y) / storage.gridScale;
             v1.x = (v1.x - storage.gridOffset.X) / storage.gridScale;

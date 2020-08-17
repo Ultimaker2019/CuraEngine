@@ -606,7 +606,6 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
     }
     PathOrderOptimizer orderOptimizer(tmpPoint);
     //PathOrderOptimizer orderOptimizer(lastPosition);
-    PathOrderOptimizer orderOptimizer(lastPosition);
     for(unsigned int i=0;i<polygons.size();i++)
         orderOptimizer.addPolygon(polygons[i]);
     orderOptimizer.optimize();
