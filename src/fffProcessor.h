@@ -108,6 +108,8 @@ private:
         gcode.setSwitchExtruderCode(config.preSwitchExtruderCode, config.postSwitchExtruderCode);
         gcode.setFlavor(config.gcodeFlavor);
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
+
+        gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
     }
 
     bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)
@@ -672,7 +674,7 @@ private:
                 if (layerNr > 0)
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
                 // Set the line width of the first layer as the normal value, and set the line width of each layer upward to the original 98.5% to avoid overflow
-                generateLineInfill(outline, skinPolygons, extrusionWidth, (layerNr == 0)?extrusionWidth:extrusionWidth*985/1000, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                generateLineInfill(outline, skinPolygons, extrusionWidth, (layerNr == 0)?extrusionWidth:extrusionWidth*99/100, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
             }
             if (config.enableCombing == COMBING_NOSKIN)
             {
