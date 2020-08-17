@@ -200,8 +200,15 @@ private:
         cura::log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
         cura::log("Generating support map...\n");
+        storage.support.isSurface = false;
+        storage.supportSurface.thickness = 0;
         generateSupportGrid(storage.support, optimizedModel, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
-
+        if(1 == config.isSupportSurfaceOn)
+        {
+            storage.supportSurface.isSurface = true;
+            storage.supportSurface.thickness = config.supportSurfaceThickness;
+            generateSupportGrid(storage.supportSurface, optimizedModel, config.supportAngle, config.supportEverywhere > 0, config.supportSurfaceXYDistance, config.supportSurfaceZDistance);
+        }
         storage.modelSize = optimizedModel->modelSize;
         storage.modelMin = optimizedModel->vMin;
         storage.modelMax = optimizedModel->vMax;
@@ -480,8 +487,11 @@ private:
             gcode.resetStartPosition();
 
             bool printSupportFirst = (storage.support.generated && config.supportExtruder > 0 && config.supportExtruder == gcodeLayer.getExtruder());
+            bool printSupportSurfaceFirst = (storage.supportSurface.generated && config.supportExtruder > 0 && config.supportExtruder == gcodeLayer.getExtruder());
             if (printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
+            if (1 == config.isSupportSurfaceOn && printSupportSurfaceFirst)
+                addSupportToGCode(storage, gcodeLayer, layerNr, true);
 
             for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
             {
@@ -491,6 +501,8 @@ private:
             }
             if (!printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
+            if (1 == config.isSupportSurfaceOn && !printSupportSurfaceFirst)
+                addSupportToGCode(storage, gcodeLayer, layerNr, true);
 
             //Finish the layer by applying speed corrections for minimal layer times
             gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
@@ -691,9 +703,11 @@ private:
         gcodeLayer.setCombBoundary(nullptr);
     }
 
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
+    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr, bool isSurface = false)
     {
-        if (!storage.support.generated)
+        if (!isSurface && !storage.support.generated)
+            return;
+        if (isSurface && !storage.supportSurface.generated)
             return;
 
         if (config.supportExtruder > -1)
@@ -710,7 +724,7 @@ private:
             }
         }
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
-        SupportPolyGenerator supportGenerator(storage.support, z);
+        SupportPolyGenerator supportGenerator(isSurface? storage.supportSurface : storage.support, z);
         for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
         {
             SliceLayer* layer = &storage.volumes[volumeCnt].layers[layerNr];
@@ -755,7 +769,12 @@ private:
                         generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap + 150, 0);
                         generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap + 150, 90);
                     }else{
-                        generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, 0);
+                        if(isSurface)
+                        {
+                            generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportSurfaceLineDistance, config.infillOverlap, 90);
+                        } else {
+                            generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, 0);
+                        }
                     }
                     break;
                 }

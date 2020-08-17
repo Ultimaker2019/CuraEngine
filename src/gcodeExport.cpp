@@ -83,11 +83,20 @@ void GCodeExport::setFlavor(int flavor)
 {
     this->flavor = flavor;
     if (flavor == GCODE_FLAVOR_MACH3)
+    {
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruderCharacter[n] = 'A' + n;
-    else
+    } else {
         for(int n=0; n<MAX_EXTRUDERS; n++)
-            extruderCharacter[n] = 'E';
+        {
+            if(n == 1)
+            {
+                extruderCharacter[n] = 'B';
+            } else {
+                extruderCharacter[n] = 'E';
+            }
+        }
+    }
 }
 int GCodeExport::getFlavor()
 {

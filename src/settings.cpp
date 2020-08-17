@@ -61,6 +61,12 @@ ConfigSettings::ConfigSettings()
     SETTING(minimalExtrusionBeforeRetraction, 100);
     SETTING(retractionZHop, 0);
 
+    SETTING(isSupportSurfaceOn, 0);
+    SETTING(supportSurfaceLineDistance, sparseInfillLineDistance);//support surface
+    SETTING(supportSurfaceThickness, 1000);
+    SETTING(supportSurfaceXYDistance, 700);
+    SETTING(supportSurfaceZDistance, 200);
+
     SETTING(enableCombing, COMBING_ALL);
     SETTING(enableOozeShield, 0);
     SETTING(wipeTowerSize, 0);

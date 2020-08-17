@@ -134,10 +134,21 @@ bool SupportPolyGenerator::needSupportAt(Point p)
         bool ok = false;
         for(unsigned int i=0; i<storage.grid[n].size(); i+=2)
         {
-            if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z - supportZDistance >= z && (i == 0 || storage.grid[n][i-1].z + supportZDistance < z))
+            if (!this->isSurface)
             {
-                ok = true;
-                break;
+                if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z - supportZDistance >= z && (i == 0 || storage.grid[n][i-1].z + supportZDistance < z))
+                {
+                    ok = true;
+                    break;
+                }
+            }else
+            {
+                if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z - supportZDistance >= z && (i == 0 || storage.grid[n][i-1].z + supportZDistance + supportThickness < z)
+                    && storage.grid[n][i].z - supportZDistance - supportThickness <= z)
+                {
+                    ok = true;
+                    break;
+                }
             }
         }
         if (!ok) return false;
@@ -145,6 +156,7 @@ bool SupportPolyGenerator::needSupportAt(Point p)
         if (storage.grid[n].size() < 1) return false;
         if (storage.grid[n][0].cosAngle < cosAngle) return false;
         if (storage.grid[n][0].z - supportZDistance < z) return false;
+        if (this->isSurface && storage.grid[n][0].z - supportZDistance - supportThickness > z) return false;
     }
     return true;
 }
@@ -192,6 +204,8 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
     
     cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
     this->supportZDistance = storage.ZDistance;
+    this->supportThickness = storage.thickness;
+    this->isSurface = storage.isSurface;
 
     done = new int[storage.gridWidth*storage.gridHeight];
     memset(done, 0, sizeof(int) * storage.gridWidth*storage.gridHeight);

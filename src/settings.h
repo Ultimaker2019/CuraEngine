@@ -177,6 +177,13 @@ public:
     int supportZDistance;
     int supportExtruder;
 
+    //Support Surface
+    int isSupportSurfaceOn;
+    int supportSurfaceLineDistance;
+    int supportSurfaceThickness;
+    int supportSurfaceXYDistance;
+    int supportSurfaceZDistance;
+
     //Cool settings
     int minimalLayerTime;
     int minimalFeedrate;

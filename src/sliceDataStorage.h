@@ -53,6 +53,8 @@ public:
     bool everywhere;
     int XYDistance;
     int ZDistance;
+    int thickness;
+    bool isSurface;
     
     Point gridOffset;
     int32_t gridScale;
@@ -79,6 +81,7 @@ public:
     vector<SliceVolumeStorage> volumes;
     
     SupportStorage support;
+    SupportStorage supportSurface;
     Polygons wipeTower;
     Point wipePoint;
 };

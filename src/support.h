@@ -19,6 +19,8 @@ private:
     double cosAngle;
     int32_t z;
     int supportZDistance;
+    int supportThickness;
+    bool isSurface;
     bool everywhere;
     int* done;
 
