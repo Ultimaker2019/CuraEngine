@@ -110,6 +110,8 @@ private:
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
 
         gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
+
+        gcode.setExtruder0OffsetXY(config.extruderOffset[0].X, extruderOffset[0].Y);
     }
 
     bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)

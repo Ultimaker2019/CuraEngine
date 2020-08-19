@@ -36,6 +36,10 @@ GCodeExport::GCodeExport()
     f = stdout;
 
     firstLineSection = 0.0;
+
+    extruder0Offset_X = 0;
+    extruder0Offset_Y = 0;
+
 }
 
 GCodeExport::~GCodeExport()
@@ -278,7 +282,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 isRetracted = true;
             }
         }
-        writeLine("G1 X%0.3f Y%0.3f Z%0.3f F%0.1f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y), INT2MM(zPos), fspeed);
+        writeLine("G1 X%0.3f Y%0.3f Z%0.3f F%0.1f", INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y), INT2MM(zPos), fspeed);
     }else{
         
         //Normal E handling.
@@ -314,7 +318,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             currentSpeed = speed;
         }
 
-        snprintf(gcodeTmp, sizeof(gcodeTmp), "%s X%0.3f Y%0.3f", gcodeTmp, INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
+        snprintf(gcodeTmp, sizeof(gcodeTmp), "%s X%0.3f Y%0.3f", gcodeTmp, INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y));
         if (zPos != currentPosition.z)
         {
             snprintf(gcodeTmp, sizeof(gcodeTmp), "%s Z%0.3f", gcodeTmp, INT2MM(zPos));
@@ -495,6 +499,12 @@ void GCodeExport::setFirstLineSection(int initialLayerThickness, int filamentDia
         this->firstLineSection = INT2MM(initialLayerThickness) * INT2MM(layer0extrusionWidth);
     else
         this->firstLineSection = INT2MM(initialLayerThickness) / _filamentArea * double(filamentFlow) / 100.0 * INT2MM(layer0extrusionWidth);
+}
+
+void GCodeExport::setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Offset_Y)
+{
+    extruder0Offset_X = _extruder0Offset_X;
+    extruder0Offset_Y = _extruder0Offset_Y;
 }
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)

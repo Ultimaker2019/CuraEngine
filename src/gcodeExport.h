@@ -48,6 +48,9 @@ private:
 
     double firstLineSection;
 
+    int extruder0Offset_X;
+    int extruder0Offset_Y;
+
 public:
     
     GCodeExport();
@@ -57,6 +60,9 @@ public:
     void replaceTagInStart(const char* tag, const char* replaceValue);
     
     void setExtruderOffset(int id, Point p);
+
+    void setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Offset_Y);
+
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
     void setFlavor(int flavor);
