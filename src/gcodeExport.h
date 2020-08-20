@@ -22,6 +22,9 @@ class GCodeExport
 private:
     FILE* f;
     double extrusionAmount;
+    double extrusionAmountTmp;
+    double extrusionAAmount;
+    double extrusionBAmount;
     double extrusionPerMM;
     double retractionAmount;
     double retractionAmountPrime;
@@ -51,6 +54,15 @@ private:
     int extruder0Offset_X;
     int extruder0Offset_Y;
 
+    //Color Mixing
+    bool is2In1OutNozzle;
+    int ColorMixing;
+    double ColorA;
+    double ColorB;
+    double OverlapCount;
+    int ColorMixType;
+    int FixedProportionColorA;
+    int FixedProportionColorB;
 public:
     
     GCodeExport();
@@ -62,6 +74,8 @@ public:
     void setExtruderOffset(int id, Point p);
 
     void setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Offset_Y);
+
+    void setColorMixing(int _ColorMixing, int _ColorA, int _ColorB, int _OverlapCount, int _ColorMixType, int _FixedProportionColorA, int _FixedProportionColorB, int _is2In1OutNozzle);
 
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     

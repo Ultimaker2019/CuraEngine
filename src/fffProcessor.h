@@ -111,7 +111,8 @@ private:
 
         gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
 
-        gcode.setExtruder0OffsetXY(config.extruderOffset[0].X, extruderOffset[0].Y);
+        gcode.setExtruder0OffsetXY(config.extruderOffset[0].X, config.extruderOffset[0].Y);
+        gcode.setColorMixing(config.colorMixing, config.colorA, config.colorB, config.overlapCount, config.colorMixType, config.fixedProportionColorA, config.fixedProportionColorB, config.is2In1OutNozzle);
     }
 
     bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)

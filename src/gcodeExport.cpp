@@ -10,12 +10,19 @@
 
 namespace cura {
 
-static const int GCODE_MAX_LENGTH = 96;
+#define GCODE_MAX_LENGTH 96
+#define COLOR_MIX 2
+#define COLOR_DOUBLE 3
+#define COLOR_SINGLE 4
+#define COLOR_LAYER 1
 
 GCodeExport::GCodeExport()
 : currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
 {
     extrusionAmount = 0;
+    extrusionAmountTmp = 0;
+    extrusionAAmount = 0;
+    extrusionBAmount = 0;
     extrusionPerMM = 0;
     retractionAmount = 4.5;
     minimalExtrusionBeforeRetraction = 0.0;
@@ -40,6 +47,14 @@ GCodeExport::GCodeExport()
     extruder0Offset_X = 0;
     extruder0Offset_Y = 0;
 
+    is2In1OutNozzle = false;
+    ColorMixing = 0;
+    ColorA = 0.0;
+    ColorB = 0.0;
+    OverlapCount = 0.0;
+    ColorMixType = 0;
+    FixedProportionColorA = 100;
+    FixedProportionColorB = 0;
 }
 
 GCodeExport::~GCodeExport()
@@ -226,10 +241,19 @@ void GCodeExport::resetExtrusionValue()
 {
     if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
     {
-        writeLine("G92 %c0", extruderCharacter[extruderNr]);
+        if(is2In1OutNozzle)
+        {
+            writeLine("G92 E0 B0");
+            extrusionAAmount = 0.0;
+            extrusionBAmount = 0.0;
+        } else
+        {
+            writeLine("G92 %c0", extruderCharacter[extruderNr]);
+        }
         totalFilament[extruderNr] += extrusionAmount;
         extrusionAmountAtPreviousRetraction -= extrusionAmount;
         extrusionAmount = 0.0;
+        extrusionAmountTmp = 0.0;
     }
 }
 
@@ -298,7 +322,17 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     writeLine("G11");
                 }else{
                     extrusionAmount += retractionAmountPrime;
-                    writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
+                    if(is2In1OutNozzle)
+                    {
+                        if(/* layerNr >= 0 && */COLOR_SINGLE == ColorMixing)
+                            writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, 0.5* extrusionAmount, 0.5* extrusionAmount);
+                        else
+                            writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, extrusionAAmount, extrusionBAmount);
+                    }
+                    else
+                    {
+                        writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
+                    }
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), currentSpeed);
                 }
@@ -325,7 +359,144 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         }
         if (lineWidth != 0)
         {
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], extrusionAmount);
+            if(!is2In1OutNozzle)
+            {
+                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], extrusionAmount);
+            }else
+            {
+                float percent = 1.0;
+                if(percent == -1.0)
+                {
+                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                    extrusionAAmount += extrusionAmountTmp * 0.5;
+                    extrusionBAmount += extrusionAmountTmp * 0.5;
+                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                }else
+                {
+                    if(ColorMixing == COLOR_LAYER)
+                    {
+                        float proportion = 10000.0 / OverlapCount;
+                        int count = percent * 10000 / proportion + 0.5;
+                        count = count  % 2;
+                        if(count == 0)
+                        {
+                            extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                            extrusionAAmount += extrusionAmountTmp * 1;
+                            extrusionBAmount += 0;
+                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                        }else
+                        {
+                            extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                            extrusionBAmount += extrusionAmountTmp * 1;
+                            extrusionAAmount += 0;
+                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                        }
+                    }
+                    else if (ColorMixing == COLOR_MIX)
+                    {
+                        if(1 == ColorMixType)
+                        {
+                            extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                            extrusionAAmount += extrusionAmountTmp * FixedProportionColorA/100.0f;
+                            extrusionBAmount += extrusionAmountTmp * (1.0f - FixedProportionColorA/100.0f);
+                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                        }
+                        else if(0 == ColorMixType){
+                            if (ColorA > ColorB)
+                            {
+                                if(percent * 100 >= ColorB && percent * 100 <= ColorA)
+                                {
+                                    percent = (percent * 100 - ColorB)/(ColorA - ColorB) ;
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * percent;
+                                    extrusionBAmount += extrusionAmountTmp * (1 - percent);
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }else if(percent * 100 < ColorB)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 0;
+                                    extrusionBAmount += extrusionAmountTmp * 1;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }else if(percent * 100 > ColorA)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 1;
+                                    extrusionBAmount += extrusionAmountTmp * 0;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }
+                            }else if (ColorA < ColorB)
+                            {
+                                if(percent * 100 <= ColorB && percent * 100 >= ColorA)
+                                {
+                                    percent = (percent * 100 - ColorA)/(ColorB - ColorA) ;
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * (1 - percent);
+                                    extrusionBAmount += extrusionAmountTmp * percent;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }else if(percent * 100 < ColorA)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 1;
+                                    extrusionBAmount += extrusionAmountTmp * 0;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }else if(percent * 100 > ColorB)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 0;
+                                    extrusionBAmount += extrusionAmountTmp * 1;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }
+                            }else if (ColorA == ColorB)
+                            {
+                                if(percent * 100 < ColorA)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 1;
+                                    extrusionBAmount += extrusionAmountTmp * 0;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }else if(percent * 100 > ColorA)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 0;
+                                    extrusionBAmount += extrusionAmountTmp * 1;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }else if(percent * 100 == ColorA)
+                                {
+                                    extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                                    extrusionAAmount += extrusionAmountTmp * 0.5;
+                                    extrusionBAmount += extrusionAmountTmp * 0.5;
+                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                }
+                            }
+                        }
+                    }else if (ColorMixing == COLOR_DOUBLE)
+                    {
+                        if(percent == -1.0)
+                        {
+                            extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                            extrusionAAmount += extrusionAmountTmp * 0.5;
+                            extrusionBAmount += extrusionAmountTmp * 0.5;
+                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                        }else
+                        {
+                            extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
+                            if(extruderNr == 0)
+                            {
+                                extrusionAAmount += extrusionAmountTmp;
+                                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f", gcodeTmp, extrusionAAmount);
+                            }
+                            else if(extruderNr == 1)
+                            {
+                                extrusionBAmount += extrusionAmountTmp;
+                                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s B%0.5f", gcodeTmp, extrusionBAmount);
+                            }
+                        }
+                    }else if (ColorMixing == COLOR_SINGLE)
+                    {
+                        snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, 0.5*extrusionAmount, 0.5*extrusionAmount);
+                    }
+                }
+            }
         }
     }
     
@@ -339,11 +510,21 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         double e = 2.0 * this->firstLineSection * diff;
         if(e <= 0.0)
         {
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f",gcodeTmp, extruderCharacter[extruderNr], 10.0f);
+            if(is2In1OutNozzle)
+            {
+                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f",gcodeTmp, 5.0f, 5.0f);
+            } else {
+                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f",gcodeTmp, extruderCharacter[extruderNr], 10.0f);
+            }
         }
         else
         {
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], e);
+            if(is2In1OutNozzle)
+            {
+                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f",gcodeTmp, e * 0.5, e * 0.5);
+            } else {
+                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], e);
+            }
         }
         firstline = 1;
     }
@@ -354,7 +535,12 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 #if EN_FIRSTLINE == 1
     if(firstline == 1)
     {
-        writeLine("G92 %c0", extruderCharacter[extruderNr]);
+        if(is2In1OutNozzle)
+        {
+            writeLine("G92 E0 B0");
+        } else {
+            writeLine("G92 %c0", extruderCharacter[extruderNr]);
+        }
         firstline = 2;
     }
 #endif
@@ -375,7 +561,29 @@ void GCodeExport::writeRetraction(bool force)
         {
             writeLine("G10");
         }else{
-            writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
+            if(is2In1OutNozzle)
+            {
+                if(ColorMixing == COLOR_DOUBLE)
+                {
+                    if(extruderNr == 0)
+                        writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAAmount - retractionAmount);
+                    else if(extruderNr == 1)
+                        writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionBAmount - retractionAmount);
+                }else
+                {
+                    if (/*!isRaft && */ColorMixing == COLOR_SINGLE)
+                    {
+                        writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60,  0.5*extrusionAmount - retractionAmount, 0.5*extrusionAmount);
+                    }else
+                    {
+                        extrusionAmountTmp = retractionAmount * 0.5;
+                        writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, extrusionAAmount - extrusionAmountTmp, extrusionBAmount - extrusionAmountTmp);
+                    }
+                }
+            }else
+            {
+                writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
+            }
             currentSpeed = retractionSpeed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
         }
@@ -403,7 +611,29 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         writeLine("G10 S1");
     }else{
-        writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+        if(is2In1OutNozzle)
+        {
+/*
+			snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+			writeChecksum(gcodeStr);
+			memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));
+			extrusionAmount += extruderSwitchRetraction;
+			if((extruderNr+1)%2 == 0)
+			{
+				extrusionAAmount = extrusionAmount;
+				extrusionBAmount = 0;
+			}else{
+				extrusionAAmount = 0;
+				extrusionBAmount = extrusionAmount;
+			}
+			snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[(extruderNr+1)%2], extrusionAmount);
+			writeChecksum(gcodeStr);
+			snprintf(gcodeStr, sizeof(gcodeStr), "G92 E0 B0");
+*/
+        }else
+        {
+            writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+        }
         currentSpeed = retractionSpeed;
     }
     if (retractionZHop > 0)
@@ -505,6 +735,18 @@ void GCodeExport::setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Off
 {
     extruder0Offset_X = _extruder0Offset_X;
     extruder0Offset_Y = _extruder0Offset_Y;
+}
+
+void GCodeExport::setColorMixing(int _ColorMixing, int _ColorA, int _ColorB, int _OverlapCount, int _ColorMixType, int _FixedProportionColorA, int _FixedProportionColorB, int _is2In1OutNozzle)
+{
+    ColorMixing = _ColorMixing;
+    ColorA = _ColorA;
+    ColorB = _ColorB;
+    OverlapCount = _OverlapCount;
+    ColorMixType = _ColorMixType;
+    FixedProportionColorA = _FixedProportionColorA;
+    FixedProportionColorB = _FixedProportionColorB;
+    is2In1OutNozzle = _is2In1OutNozzle==1?true:false;
 }
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)

@@ -138,6 +138,16 @@ ConfigSettings::ConfigSettings()
     SETTING(extruderOffset[15].X, 0);
     SETTING(extruderOffset[15].Y, 0);
 
+    // Color Mixing
+    SETTING(is2In1OutNozzle, 0);
+    SETTING(colorMixing, 0);
+    SETTING(colorA, 0);
+    SETTING(colorB, 0);
+    SETTING(overlapCount, 0);
+    SETTING(colorMixType, 0);
+    SETTING(fixedProportionColorA, 100);
+    SETTING(fixedProportionColorB, 0);
+
     startCode =
         "M109 S210     ;Heatup to 210C\n"
         "G21           ;metric values\n"

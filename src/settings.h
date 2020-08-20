@@ -229,6 +229,17 @@ public:
     bool setSetting(const char* key, const char* value);
     bool readSettings(void);
     bool readSettings(const char* path);
+
+    // Color Mixing
+    int is2In1OutNozzle;
+    int colorMixing;
+    int colorA;
+    int colorB;
+    int overlapCount;
+    int colorMixType;
+    int fixedProportionColorA;
+    int fixedProportionColorB;
+
 };
 
 #endif//SETTINGS_H
