@@ -124,7 +124,11 @@ public:
     
     void writeDelay(double timeAmount);
     
+    // writeMove for GCODE_FLAVOR_BFB
     void writeMove4GFB(Point p, int speed, int lineWidth);
+    
+    // writeMove EB for 2 in 1 out nozzle
+    void writeMoveE4TIOO();
     
     void writeMove(Point p, int speed, int lineWidth);
     
