@@ -58,6 +58,8 @@ GCodeExport::GCodeExport()
     
     currentLayer = -1;
     totalLayer = -1;
+
+    memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));//clear buffer
 }
 
 GCodeExport::~GCodeExport()
@@ -276,50 +278,55 @@ void GCodeExport::writeDelay(double timeAmount)
     totalPrintTime += timeAmount;
 }
 
+// writeMove for GCODE_FLAVOR_BFB
+void GCodeExport::writeMove4GFB(Point p, int speed, int lineWidth)
+{
+    //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
+    float fspeed = speed * 60;
+    float rpm = (extrusionPerMM * double(lineWidth) / 1000.0) * speed * 60;
+    const float mm_per_rpm = 4.0; //All BFB machines have 4mm per RPM extrusion.
+    rpm /= mm_per_rpm;
+    if (rpm > 0)
+    {
+        if (isRetracted)
+        {
+            if (currentSpeed != int(rpm * 10))
+            {
+                //writeComment("; %f e-per-mm %d mm-width %d mm/s", extrusionPerMM, lineWidth, speed);
+                writeLine("M108 S%0.1f", rpm);
+                currentSpeed = int(rpm * 10);
+            }
+            writeLine("M%d01", extruderNr + 1);
+            isRetracted = false;
+        }
+        //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
+        // (Trick copied from KISSlicer, thanks Jonathan)
+        fspeed *= (rpm / (roundf(rpm * 100) / 100));
+
+        //Increase the extrusion amount to calculate the amount of filament used.
+        Point diff = p - getPositionXY();
+        extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
+    }else{
+        //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
+        if (!isRetracted)
+        {
+            writeLine("M103");
+            isRetracted = true;
+        }
+    }
+    writeLine("G1 X%0.3f Y%0.3f Z%0.3f F%0.1f", INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y), INT2MM(zPos), fspeed);
+}
+
 void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
-    char gcodeTmp[96];
-    memset(gcodeTmp,0,sizeof(gcodeTmp)/sizeof(char));//clear buffer
+    memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));//clear buffer
 
     if (currentPosition.x == p.X && currentPosition.y == p.Y && currentPosition.z == zPos)
         return;
 
     if (flavor == GCODE_FLAVOR_BFB)
     {
-        //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
-        float fspeed = speed * 60;
-        float rpm = (extrusionPerMM * double(lineWidth) / 1000.0) * speed * 60;
-        const float mm_per_rpm = 4.0; //All BFB machines have 4mm per RPM extrusion.
-        rpm /= mm_per_rpm;
-        if (rpm > 0)
-        {
-            if (isRetracted)
-            {
-                if (currentSpeed != int(rpm * 10))
-                {
-                    //writeComment("; %f e-per-mm %d mm-width %d mm/s", extrusionPerMM, lineWidth, speed);
-                    writeLine("M108 S%0.1f", rpm);
-                    currentSpeed = int(rpm * 10);
-                }
-                writeLine("M%d01", extruderNr + 1);
-                isRetracted = false;
-            }
-            //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
-            // (Trick copied from KISSlicer, thanks Jonathan)
-            fspeed *= (rpm / (roundf(rpm * 100) / 100));
-
-            //Increase the extrusion amount to calculate the amount of filament used.
-            Point diff = p - getPositionXY();
-            extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
-        }else{
-            //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
-            if (!isRetracted)
-            {
-                writeLine("M103");
-                isRetracted = true;
-            }
-        }
-        writeLine("G1 X%0.3f Y%0.3f Z%0.3f F%0.1f", INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y), INT2MM(zPos), fspeed);
+        writeMove4GFB(p, speed, lineWidth);
     }else{
         
         //Normal E handling.
@@ -354,27 +361,27 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 isRetracted = false;
             }
             extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "G1");
+            snprintf(gcodeStr, sizeof(gcodeStr), "G1");
         }else{
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "G0");
+            snprintf(gcodeStr, sizeof(gcodeStr), "G0");
         }
 
         if (currentSpeed != speed)
         {
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s F%i", gcodeTmp, speed * 60);
+            snprintf(gcodeStr, sizeof(gcodeStr), "%s F%i", gcodeStr, speed * 60);
             currentSpeed = speed;
         }
 
-        snprintf(gcodeTmp, sizeof(gcodeTmp), "%s X%0.3f Y%0.3f", gcodeTmp, INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y));
+        snprintf(gcodeStr, sizeof(gcodeStr), "%s X%0.3f Y%0.3f", gcodeStr, INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y));
         if (zPos != currentPosition.z)
         {
-            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s Z%0.3f", gcodeTmp, INT2MM(zPos));
+            snprintf(gcodeStr, sizeof(gcodeStr), "%s Z%0.3f", gcodeStr, INT2MM(zPos));
         }
         if (lineWidth != 0)
         {
             if(!is2In1OutNozzle)
             {
-                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], extrusionAmount);
+                snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], extrusionAmount);
             }else
             {
                 float percent = -1;
@@ -387,7 +394,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                     extrusionAAmount += extrusionAmountTmp * 0.5;
                     extrusionBAmount += extrusionAmountTmp * 0.5;
-                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                 }else
                 {
                     if(ColorMixing == COLOR_LAYER)
@@ -400,13 +407,13 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                             extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                             extrusionAAmount += extrusionAmountTmp * 1;
                             extrusionBAmount += 0;
-                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                            snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                         }else
                         {
                             extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                             extrusionBAmount += extrusionAmountTmp * 1;
                             extrusionAAmount += 0;
-                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                            snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                         }
                     }
                     else if (ColorMixing == COLOR_MIX)
@@ -416,7 +423,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                             extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                             extrusionAAmount += extrusionAmountTmp * FixedProportionColorA/100.0f;
                             extrusionBAmount += extrusionAmountTmp * (1.0f - FixedProportionColorA/100.0f);
-                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                            snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                         }
                         else if(0 == ColorMixType){
                             if (ColorA > ColorB)
@@ -427,19 +434,19 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * percent;
                                     extrusionBAmount += extrusionAmountTmp * (1 - percent);
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }else if(percent * 100 < ColorB)
                                 {
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 0;
                                     extrusionBAmount += extrusionAmountTmp * 1;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }else if(percent * 100 > ColorA)
                                 {
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 1;
                                     extrusionBAmount += extrusionAmountTmp * 0;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }
                             }else if (ColorA < ColorB)
                             {
@@ -449,19 +456,19 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * (1 - percent);
                                     extrusionBAmount += extrusionAmountTmp * percent;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }else if(percent * 100 < ColorA)
                                 {
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 1;
                                     extrusionBAmount += extrusionAmountTmp * 0;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }else if(percent * 100 > ColorB)
                                 {
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 0;
                                     extrusionBAmount += extrusionAmountTmp * 1;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }
                             }else if (ColorA == ColorB)
                             {
@@ -470,19 +477,19 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 1;
                                     extrusionBAmount += extrusionAmountTmp * 0;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }else if(percent * 100 > ColorA)
                                 {
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 0;
                                     extrusionBAmount += extrusionAmountTmp * 1;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }else if(percent * 100 == ColorA)
                                 {
                                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                                     extrusionAAmount += extrusionAmountTmp * 0.5;
                                     extrusionBAmount += extrusionAmountTmp * 0.5;
-                                    snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                                    snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                                 }
                             }
                         }
@@ -493,24 +500,24 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                             extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                             extrusionAAmount += extrusionAmountTmp * 0.5;
                             extrusionBAmount += extrusionAmountTmp * 0.5;
-                            snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, extrusionAAmount, extrusionBAmount);
+                            snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
                         }else
                         {
                             extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                             if(extruderNr == 0)
                             {
                                 extrusionAAmount += extrusionAmountTmp;
-                                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f", gcodeTmp, extrusionAAmount);
+                                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f", gcodeStr, extrusionAAmount);
                             }
                             else if(extruderNr == 1)
                             {
                                 extrusionBAmount += extrusionAmountTmp;
-                                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s B%0.5f", gcodeTmp, extrusionBAmount);
+                                snprintf(gcodeStr, sizeof(gcodeStr), "%s B%0.5f", gcodeStr, extrusionBAmount);
                             }
                         }
                     }else if (ColorMixing == COLOR_SINGLE)
                     {
-                        snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f", gcodeTmp, 0.5*extrusionAmount, 0.5*extrusionAmount);
+                        snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, 0.5*extrusionAmount, 0.5*extrusionAmount);
                     }
                 }
             }
@@ -529,25 +536,25 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         {
             if(is2In1OutNozzle)
             {
-                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f",gcodeTmp, 5.0f, 5.0f);
+                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f",gcodeStr, 5.0f, 5.0f);
             } else {
-                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f",gcodeTmp, extruderCharacter[extruderNr], 10.0f);
+                snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f",gcodeStr, extruderCharacter[extruderNr], 10.0f);
             }
         }
         else
         {
             if(is2In1OutNozzle)
             {
-                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s E%0.5f B%0.5f",gcodeTmp, e * 0.5, e * 0.5);
+                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f",gcodeStr, e * 0.5, e * 0.5);
             } else {
-                snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], e);
+                snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], e);
             }
         }
         firstline = 1;
     }
 #endif
 
-    writeLine(gcodeTmp);
+    writeLine(gcodeStr);
 
 #if EN_FIRSTLINE == 1
     if(firstline == 1)

@@ -66,6 +66,8 @@ private:
     int ColorMixType;
     int FixedProportionColorA;
     int FixedProportionColorB;
+
+    char gcodeStr[96];
 public:
     
     GCodeExport();
@@ -121,6 +123,8 @@ public:
     void resetExtrusionValue();
     
     void writeDelay(double timeAmount);
+    
+    void writeMove4GFB(Point p, int speed, int lineWidth);
     
     void writeMove(Point p, int speed, int lineWidth);
     
