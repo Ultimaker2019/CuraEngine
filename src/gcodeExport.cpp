@@ -17,7 +17,7 @@ namespace cura {
 #define COLOR_LAYER 1
 
 GCodeExport::GCodeExport()
-: currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
+    : currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
 {
     extrusionAmount = 0;
     extrusionAmountTmp = 0;
@@ -355,9 +355,9 @@ void GCodeExport::writeMove4GFB(Point p, int speed, int lineWidth)
 
 void GCodeExport::writeMoveE4TIOO_LAYER()
 {
-	if(totalLayer == 0)
+    if(totalLayer == 0)
     {
-		return;
+        return;
     }
     int count = currentLayer * OverlapCount / totalLayer + 0.5;
     count = count  % 2;
@@ -378,12 +378,12 @@ void GCodeExport::writeMoveE4TIOO_LAYER()
 
 void GCodeExport::writeMoveE4TIOO_MIX()
 {
-	if(totalLayer == 0)
+    if(totalLayer == 0)
     {
-		return;
+        return;
     }
-	int percent = currentLayer * 100 / totalLayer;
-	if(1 == ColorMixType)
+    int layer_height_percent = currentLayer * 100 / totalLayer;
+    if(1 == ColorMixType)
     {
         extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
         extrusionAAmount += extrusionAmountTmp * FixedProportionColorA/100.0f;
@@ -393,20 +393,20 @@ void GCodeExport::writeMoveE4TIOO_MIX()
     else if(0 == ColorMixType){
         if (ColorA > ColorB)
         {
-            if(percent >= ColorB && percent <= ColorA)
+            if(layer_height_percent >= ColorB && layer_height_percent <= ColorA)
             {
-                percent = (percent - ColorB)/(ColorA - ColorB) ;
+                float percent = (layer_height_percent - ColorB)/(ColorA - ColorB) ;
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * percent;
                 extrusionBAmount += extrusionAmountTmp * (1 - percent);
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(percent < ColorB)
+            }else if(layer_height_percent < ColorB)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(percent > ColorA)
+            }else if(layer_height_percent > ColorA)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
@@ -415,20 +415,20 @@ void GCodeExport::writeMoveE4TIOO_MIX()
             }
         }else if (ColorA < ColorB)
         {
-            if(percent <= ColorB && percent >= ColorA)
+            if(layer_height_percent <= ColorB && layer_height_percent >= ColorA)
             {
-                percent = (percent - ColorA)/(ColorB - ColorA) ;
+                float percent = (layer_height_percent - ColorA)/(ColorB - ColorA) ;
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * (1 - percent);
                 extrusionBAmount += extrusionAmountTmp * percent;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(percent < ColorA)
+            }else if(layer_height_percent < ColorA)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(percent > ColorB)
+            }else if(layer_height_percent > ColorB)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
@@ -437,19 +437,19 @@ void GCodeExport::writeMoveE4TIOO_MIX()
             }
         }else if (ColorA == ColorB)
         {
-            if(percent < ColorA)
+            if(layer_height_percent < ColorA)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(percent > ColorA)
+            }else if(layer_height_percent > ColorA)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(percent == ColorA)
+            }else if(layer_height_percent == ColorA)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0.5;
@@ -672,23 +672,23 @@ void GCodeExport::switchExtruder(int newExtruder)
     }else{
         if(is2In1OutNozzle)
         {
-/*
-			snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
-			writeChecksum(gcodeStr);
-			memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));
-			extrusionAmount += extruderSwitchRetraction;
-			if((extruderNr+1)%2 == 0)
-			{
-				extrusionAAmount = extrusionAmount;
-				extrusionBAmount = 0;
-			}else{
-				extrusionAAmount = 0;
-				extrusionBAmount = extrusionAmount;
-			}
-			snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[(extruderNr+1)%2], extrusionAmount);
-			writeChecksum(gcodeStr);
-			snprintf(gcodeStr, sizeof(gcodeStr), "G92 E0 B0");
-*/
+            /*
+            snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+            writeChecksum(gcodeStr);
+            memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));
+            extrusionAmount += extruderSwitchRetraction;
+            if((extruderNr+1)%2 == 0)
+            {
+                extrusionAAmount = extrusionAmount;
+                extrusionBAmount = 0;
+            }else{
+                extrusionAAmount = 0;
+                extrusionBAmount = extrusionAmount;
+            }
+            snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[(extruderNr+1)%2], extrusionAmount);
+            writeChecksum(gcodeStr);
+            snprintf(gcodeStr, sizeof(gcodeStr), "G92 E0 B0");
+            */
         }else
         {
             writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
@@ -827,7 +827,7 @@ void GCodePlanner::forceNewPathStart()
 }
 
 GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance)
-: gcode(gcode), travelConfig(travelSpeed, 0, "travel")
+    : gcode(gcode), travelConfig(travelSpeed, 0, "travel")
 {
     lastPosition = gcode.getPositionXY();
     comb = nullptr;
