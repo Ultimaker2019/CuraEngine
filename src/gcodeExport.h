@@ -125,6 +125,10 @@ public:
     // writeMove for GCODE_FLAVOR_BFB
     void writeMove4GFB(Point p, int speed, int lineWidth);
     
+    void writeMoveE4TIOO_LAYER();
+    
+    void writeMoveE4TIOO_MIX();
+    
     // writeMove EB for 2 in 1 out nozzle
     void writeMoveE4TIOO();
     
