@@ -50,6 +50,9 @@ private:
     TimeEstimateCalculator estimateCalculator;
 
     double firstLineSection;
+    
+    int currentLayer;
+    int totalLayer;
 
     int extruder0Offset_X;
     int extruder0Offset_Y;
@@ -91,6 +94,10 @@ public:
     void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime);
     
     void setZ(int z);
+    
+    void setCurrentLayer(int _currentLayer);
+    
+    void setTotalLayer(int _totalLayer);
     
     Point getPositionXY();
     

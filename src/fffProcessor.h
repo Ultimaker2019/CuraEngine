@@ -377,6 +377,7 @@ private:
         gcode.writeComment("Force Re-Check is on");
         gcode.writeLine("M305 S1");
         gcode.writeComment("Layer count: %d", totalLayers);
+        gcode.setTotalLayer(totalLayers);
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
@@ -395,6 +396,7 @@ private:
                 if (config.supportExtruder > 0)
                     gcodeLayer.setExtruder(config.supportExtruder);
                 gcode.setZ(config.raftBaseThickness);
+                gcode.setCurrentLayer(-1);
                 gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
 
                 gcodeLayer.addPolygonsByOptimizer(storage.skirt, &raftBaseConfig);
@@ -416,6 +418,7 @@ private:
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness);
+                gcode.setCurrentLayer(-1);
                 gcode.setExtrusion(config.raftInterfaceThickness, config.filamentDiameter, config.filamentFlow);
 
                 Polygons raftLines;
@@ -431,6 +434,7 @@ private:
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceThickness*raftSurfaceLayer);
+                gcode.setCurrentLayer(-1);
                 gcode.setExtrusion(config.raftSurfaceThickness, config.filamentDiameter, config.filamentFlow);
 
                 Polygons raftLines;
@@ -489,6 +493,7 @@ private:
                 }
             }
             gcode.setZ(z);
+            gcode.setCurrentLayer(layerNr);
             gcode.resetStartPosition();
 
             bool printSupportFirst = (storage.support.generated && config.supportExtruder > 0 && config.supportExtruder == gcodeLayer.getExtruder());

@@ -55,6 +55,9 @@ GCodeExport::GCodeExport()
     ColorMixType = 0;
     FixedProportionColorA = 100;
     FixedProportionColorB = 0;
+    
+    currentLayer = -1;
+    totalLayer = -1;
 }
 
 GCodeExport::~GCodeExport()
@@ -154,6 +157,16 @@ void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpee
 void GCodeExport::setZ(int z)
 {
     this->zPos = z;
+}
+
+void GCodeExport::setCurrentLayer(int _currentLayer)
+{
+    this->currentLayer = _currentLayer;
+}
+
+void GCodeExport::setTotalLayer(int _totalLayer)
+{
+    this->totalLayer = _totalLayer;
 }
 
 Point GCodeExport::getPositionXY()
@@ -364,7 +377,11 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 snprintf(gcodeTmp, sizeof(gcodeTmp), "%s %c%0.5f", gcodeTmp, extruderCharacter[extruderNr], extrusionAmount);
             }else
             {
-                float percent = 1.0;
+                float percent = -1;
+                if(totalLayer != 0)
+                {
+                    percent = currentLayer/totalLayer;
+                }
                 if(percent == -1.0)
                 {
                     extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
@@ -571,7 +588,7 @@ void GCodeExport::writeRetraction(bool force)
                         writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionBAmount - retractionAmount);
                 }else
                 {
-                    if (/*!isRaft && */ColorMixing == COLOR_SINGLE)
+                    if (currentLayer >= 0 && ColorMixing == COLOR_SINGLE)
                     {
                         writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60,  0.5*extrusionAmount - retractionAmount, 0.5*extrusionAmount);
                     }else
