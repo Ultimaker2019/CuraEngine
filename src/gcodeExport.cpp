@@ -41,7 +41,8 @@ GCodeExport::GCodeExport()
     setFlavor(GCODE_FLAVOR_REPRAP);
     memset(extruderOffset, 0, sizeof(extruderOffset));
     f = stdout;
-
+    
+    firstLineIsRunOnce = false;
     firstLineSection = 0.0;
 
     extruder0Offset_X = 0;
@@ -529,7 +530,9 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             }
         }
     }
-    
+    if(!firstLineIsRunOnce)
+    {
+        firstLineIsRunOnce = true;
 #if EN_FIRSTLINE == 1
     static int firstline = 0;
     if(firstline == 0)
@@ -574,6 +577,9 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         firstline = 2;
     }
 #endif
+    } else {
+        writeLine(gcodeStr);
+    }
 
     currentPosition = Point3(p.X, p.Y, zPos);
     startPosition = currentPosition;

@@ -49,6 +49,7 @@ private:
     double totalPrintTime;
     TimeEstimateCalculator estimateCalculator;
 
+    bool firstLineIsRunOnce;
     double firstLineSection;
     
     int currentLayer;
