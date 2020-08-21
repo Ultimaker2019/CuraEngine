@@ -459,6 +459,33 @@ void GCodeExport::writeMoveE4TIOO()
     }
 }
 
+// writeMove EB for first line
+// Print some silk from the origin point to the starting point,then reset.
+void GCodeExport::writeMoveE4FL(Point p)
+{
+    static int firstline = 0;
+    if(firstline == 0)
+    {
+        double x = INT2MM(p.X - extruderOffset[extruderNr].X);
+        double y = INT2MM(p.Y - extruderOffset[extruderNr].Y);
+        double diff = sqrt(x*x+y*y);
+        double e = 2.0 * this->firstLineSection * diff;
+        if(e <= 0.0)
+        {
+            e = 10.0f;
+        }
+        if(is2In1OutNozzle)
+        {
+            writeLine("%s E%0.5f B%0.5f",gcodeStr, e * 0.5, e * 0.5);
+            writeLine("G92 E0 B0");
+        } else {
+            writeLine("%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], e);
+            writeLine("G92 %c0", extruderCharacter[extruderNr]);
+        }
+        firstline = 1;
+    }
+}
+
 void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
     memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));//clear buffer
@@ -532,51 +559,8 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
     }
     if(!firstLineIsRunOnce)
     {
+        writeMoveE4FL(p);
         firstLineIsRunOnce = true;
-#if EN_FIRSTLINE == 1
-    static int firstline = 0;
-    if(firstline == 0)
-    {
-        double x = INT2MM(p.X - extruderOffset[extruderNr].X);
-        double y = INT2MM(p.Y - extruderOffset[extruderNr].Y);
-        double diff = sqrt(x*x+y*y);
-        double e = 2.0 * this->firstLineSection * diff;
-        if(e <= 0.0)
-        {
-            if(is2In1OutNozzle)
-            {
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f",gcodeStr, 5.0f, 5.0f);
-            } else {
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f",gcodeStr, extruderCharacter[extruderNr], 10.0f);
-            }
-        }
-        else
-        {
-            if(is2In1OutNozzle)
-            {
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f",gcodeStr, e * 0.5, e * 0.5);
-            } else {
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], e);
-            }
-        }
-        firstline = 1;
-    }
-#endif
-
-    writeLine(gcodeStr);
-
-#if EN_FIRSTLINE == 1
-    if(firstline == 1)
-    {
-        if(is2In1OutNozzle)
-        {
-            writeLine("G92 E0 B0");
-        } else {
-            writeLine("G92 %c0", extruderCharacter[extruderNr]);
-        }
-        firstline = 2;
-    }
-#endif
     } else {
         writeLine(gcodeStr);
     }

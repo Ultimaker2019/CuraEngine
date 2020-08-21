@@ -10,9 +10,6 @@
 #include "utils/polygon.h"
 #include "timeEstimate.h"
 
-//Print some silk from the origin point to the starting point,then reset.
-#define EN_FIRSTLINE 1
-
 namespace cura {
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -130,6 +127,10 @@ public:
     
     // writeMove EB for 2 in 1 out nozzle
     void writeMoveE4TIOO();
+    
+    // writeMove EB for first line
+    // Print some silk from the origin point to the starting point,then reset.
+    void writeMoveE4FL(Point p);
     
     void writeMove(Point p, int speed, int lineWidth);
     
