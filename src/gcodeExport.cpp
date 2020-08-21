@@ -229,23 +229,58 @@ void GCodeExport::writeComment(const char* comment, ...)
     va_end(args);
 }
 
+char GCodeExport::getEncryption(char source, int key, int pos)
+{
+    if((source >= 'a' && source <= 'z'))
+    {
+        source = source + (key + pos) % 26;
+        if(source > 'z')
+        {
+            source -= 26;
+        }
+    }else if((source >= 'A' && source <= 'Z'))
+    {
+        source = source + (key + pos) % 26;
+        if(source > 'Z')
+        {
+            source -= 26;
+        }
+    }else if((source >= '0' && source <= '9'))
+    {
+        source = source + (key + pos) % 10;
+        if(source > '9')
+        {
+            source -= 10;
+        }
+    }
+    return source;
+}
+
 void GCodeExport::writeLine(const char* line, ...)
 {
-    char gcodeStr[GCODE_MAX_LENGTH];
+    char gcode_cmd[GCODE_MAX_LENGTH];
     unsigned int checksum = 0;
     va_list args;
     va_start(args, line);
     //vfprintf(f, line, args);
-    vsprintf(gcodeStr, line, args);
+    vsprintf(gcode_cmd, line, args);
+    if(is2In1OutNozzle)
+    {
+        int len = strlen(gcode_cmd);
+        for(int i = 0;i < len;i ++)
+        {
+            gcode_cmd[i] = getEncryption(gcode_cmd[i],20,i);
+        }
+    }
     for(int i = 0; i < GCODE_MAX_LENGTH; i++)
     {
-        if(gcodeStr[i] == '\0')
+        if(gcode_cmd[i] == '\0')
         {
             break;
         }
-        checksum ^= gcodeStr[i];
+        checksum ^= gcode_cmd[i];
     }
-    fprintf(f, "%s $%d", gcodeStr, checksum);
+    fprintf(f, "%s $%d", gcode_cmd, checksum);
     if (flavor == GCODE_FLAVOR_BFB)
         fprintf(f, "\r\n");
     else

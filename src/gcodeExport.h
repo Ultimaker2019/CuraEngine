@@ -115,7 +115,9 @@ public:
     void updateTotalPrintTime();
     
     void writeComment(const char* comment, ...);
-
+    
+    char getEncryption(char source, int key, int pos);
+    
     void writeLine(const char* line, ...);
     
     void resetExtrusionValue();
