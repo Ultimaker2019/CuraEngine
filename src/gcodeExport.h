@@ -78,7 +78,7 @@ public:
 
     void setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Offset_Y);
 
-    void setColorMixing(int _TIOON_type, int _TIOON_mix_a, int _TIOON_mix_b, int _TIOON_overlap_count, int _TIOON_mix_type, int _TIOON_fixed_proportion_a, int _TIOON_fixed_proportion_b, int _TIOON_isEnable);
+    void setTIOONSettings(int _TIOON_type, int _TIOON_mix_a, int _TIOON_mix_b, int _TIOON_overlap_count, int _TIOON_mix_type, int _TIOON_fixed_proportion_a, int _TIOON_fixed_proportion_b, int _TIOON_isEnable);
 
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     

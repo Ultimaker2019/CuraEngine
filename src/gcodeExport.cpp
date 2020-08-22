@@ -796,7 +796,7 @@ void GCodeExport::setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Off
     extruder0Offset_Y = _extruder0Offset_Y;
 }
 
-void GCodeExport::setColorMixing(int _TIOON_type, int _TIOON_mix_a, int _TIOON_mix_b, int _TIOON_overlap_count, int _TIOON_mix_type, int _TIOON_fixed_proportion_a, int _TIOON_fixed_proportion_b, int _TIOON_isEnable)
+void GCodeExport::setTIOONSettings(int _TIOON_type, int _TIOON_mix_a, int _TIOON_mix_b, int _TIOON_overlap_count, int _TIOON_mix_type, int _TIOON_fixed_proportion_a, int _TIOON_fixed_proportion_b, int _TIOON_isEnable)
 {
     TIOON_type = _TIOON_type;
     TIOON_mix_a = _TIOON_mix_a;
