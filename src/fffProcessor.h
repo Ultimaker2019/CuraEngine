@@ -94,8 +94,27 @@ public:
     }
 
 private:
+    void resetSettings4Nozzle()
+    {
+        // nozzle v5 setting
+        if (config.nozzleType == NOZZLE_TYPE_V5)
+        {
+            config.retractionAmount = 500;
+            config.retractionSpeed = 25;
+            config.retractionAmountExtruderSwitch = 500;
+            if(config.extrusionWidth == 200)
+            {
+                config.retractionAmount = 0;
+                config.retractionSpeed = 40;
+                config.retractionAmountExtruderSwitch = 0;
+            }
+        }
+    }
+
     void preSetup()
     {
+        resetSettings4Nozzle();
+
         skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
         inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
         insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");

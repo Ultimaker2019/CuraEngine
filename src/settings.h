@@ -15,6 +15,10 @@
 #define FIX_HORRIBLE_UNION_ALL_TYPE_C    0x08
 #define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
+#define NOZZLE_TYPE_NONE  0
+#define NOZZLE_TYPE_V4    1
+#define NOZZLE_TYPE_V5    2
+
 /**
  * Type of support material.
  * Grid is a X/Y grid with an outline, which is very strong, provides good support. But in some cases is hard to remove.
@@ -239,6 +243,8 @@ public:
     int TIOON_mix_type;
     int TIOON_fixed_proportion_a;
     int TIOON_fixed_proportion_b;
+
+    int nozzleType;
 
 };
 
