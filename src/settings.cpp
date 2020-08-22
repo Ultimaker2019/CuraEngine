@@ -139,14 +139,14 @@ ConfigSettings::ConfigSettings()
     SETTING(extruderOffset[15].Y, 0);
 
     // Color Mixing
-    SETTING(is2In1OutNozzle, 0);
-    SETTING(colorMixing, 0);
-    SETTING(colorA, 0);
-    SETTING(colorB, 0);
-    SETTING(overlapCount, 0);
-    SETTING(colorMixType, 0);
-    SETTING(fixedProportionColorA, 100);
-    SETTING(fixedProportionColorB, 0);
+    SETTING(TIOON_enable, 0);
+    SETTING(TIOON_type, 0);
+    SETTING(TIOON_mix_a, 0);
+    SETTING(TIOON_mix_b, 0);
+    SETTING(TIOON_overlap_count, 0);
+    SETTING(TIOON_mix_type, 0);
+    SETTING(TIOON_fixed_proportion_a, 100);
+    SETTING(TIOON_fixed_proportion_b, 0);
 
     startCode =
         "M109 S210     ;Heatup to 210C\n"

@@ -231,14 +231,14 @@ public:
     bool readSettings(const char* path);
 
     // Color Mixing
-    int is2In1OutNozzle;
-    int colorMixing;
-    int colorA;
-    int colorB;
-    int overlapCount;
-    int colorMixType;
-    int fixedProportionColorA;
-    int fixedProportionColorB;
+    int TIOON_enable;
+    int TIOON_type;
+    int TIOON_mix_a;
+    int TIOON_mix_b;
+    int TIOON_overlap_count;
+    int TIOON_mix_type;
+    int TIOON_fixed_proportion_a;
+    int TIOON_fixed_proportion_b;
 
 };
 

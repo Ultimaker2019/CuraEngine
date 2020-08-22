@@ -112,7 +112,7 @@ private:
         gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
 
         gcode.setExtruder0OffsetXY(config.extruderOffset[0].X, config.extruderOffset[0].Y);
-        gcode.setColorMixing(config.colorMixing, config.colorA, config.colorB, config.overlapCount, config.colorMixType, config.fixedProportionColorA, config.fixedProportionColorB, config.is2In1OutNozzle);
+        gcode.setColorMixing(config.TIOON_type, config.TIOON_mix_a, config.TIOON_mix_b, config.TIOON_overlap_count, config.TIOON_mix_type, config.TIOON_fixed_proportion_a, config.TIOON_fixed_proportion_b, config.TIOON_enable);
     }
 
     bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)

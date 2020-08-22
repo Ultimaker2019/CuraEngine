@@ -48,14 +48,14 @@ GCodeExport::GCodeExport()
     extruder0Offset_X = 0;
     extruder0Offset_Y = 0;
 
-    is2In1OutNozzle = false;
-    ColorMixing = 0;
-    ColorA = 0.0;
-    ColorB = 0.0;
-    OverlapCount = 0.0;
-    ColorMixType = 0;
-    FixedProportionColorA = 100;
-    FixedProportionColorB = 0;
+    TIOON_isEnable = false;
+    TIOON_type = 0;
+    TIOON_mix_a = 0.0;
+    TIOON_mix_b = 0.0;
+    TIOON_overlap_count = 0.0;
+    TIOON_mix_type = 0;
+    TIOON_fixed_proportion_a = 100;
+    TIOON_fixed_proportion_b = 0;
     
     currentLayer = -1;
     totalLayer = -1;
@@ -264,7 +264,7 @@ void GCodeExport::writeLine(const char* line, ...)
     va_start(args, line);
     //vfprintf(f, line, args);
     vsprintf(gcode_cmd, line, args);
-    if(is2In1OutNozzle)
+    if(TIOON_isEnable)
     {
         int len = strlen(gcode_cmd);
         for(int i = 0;i < len;i ++)
@@ -292,7 +292,7 @@ void GCodeExport::resetExtrusionValue()
 {
     if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
     {
-        if(is2In1OutNozzle)
+        if(TIOON_isEnable)
         {
             writeLine("G92 E0 B0");
             extrusionAAmount = 0.0;
@@ -359,7 +359,7 @@ void GCodeExport::writeMoveE4TIOO_LAYER()
     {
         return;
     }
-    int count = currentLayer * OverlapCount / totalLayer + 0.5;
+    int count = currentLayer * TIOON_overlap_count / totalLayer + 0.5;
     count = count  % 2;
     if(count == 0)
     {
@@ -383,73 +383,73 @@ void GCodeExport::writeMoveE4TIOO_MIX()
         return;
     }
     int layer_height_percent = currentLayer * 100 / totalLayer;
-    if(1 == ColorMixType)
+    if(1 == TIOON_mix_type)
     {
         extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
-        extrusionAAmount += extrusionAmountTmp * FixedProportionColorA/100.0f;
-        extrusionBAmount += extrusionAmountTmp * (1.0f - FixedProportionColorA/100.0f);
+        extrusionAAmount += extrusionAmountTmp * TIOON_fixed_proportion_a/100.0f;
+        extrusionBAmount += extrusionAmountTmp * (1.0f - TIOON_fixed_proportion_a/100.0f);
         snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
     }
-    else if(0 == ColorMixType){
-        if (ColorA > ColorB)
+    else if(0 == TIOON_mix_type){
+        if (TIOON_mix_a > TIOON_mix_b)
         {
-            if(layer_height_percent >= ColorB && layer_height_percent <= ColorA)
+            if(layer_height_percent >= TIOON_mix_b && layer_height_percent <= TIOON_mix_a)
             {
-                float percent = (layer_height_percent - ColorB)/(ColorA - ColorB) ;
+                float percent = (layer_height_percent - TIOON_mix_b)/(TIOON_mix_a - TIOON_mix_b) ;
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * percent;
                 extrusionBAmount += extrusionAmountTmp * (1 - percent);
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(layer_height_percent < ColorB)
+            }else if(layer_height_percent < TIOON_mix_b)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(layer_height_percent > ColorA)
+            }else if(layer_height_percent > TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
             }
-        }else if (ColorA < ColorB)
+        }else if (TIOON_mix_a < TIOON_mix_b)
         {
-            if(layer_height_percent <= ColorB && layer_height_percent >= ColorA)
+            if(layer_height_percent <= TIOON_mix_b && layer_height_percent >= TIOON_mix_a)
             {
-                float percent = (layer_height_percent - ColorA)/(ColorB - ColorA) ;
+                float percent = (layer_height_percent - TIOON_mix_a)/(TIOON_mix_b - TIOON_mix_a) ;
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * (1 - percent);
                 extrusionBAmount += extrusionAmountTmp * percent;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(layer_height_percent < ColorA)
+            }else if(layer_height_percent < TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(layer_height_percent > ColorB)
+            }else if(layer_height_percent > TIOON_mix_b)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
             }
-        }else if (ColorA == ColorB)
+        }else if (TIOON_mix_a == TIOON_mix_b)
         {
-            if(layer_height_percent < ColorA)
+            if(layer_height_percent < TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(layer_height_percent > ColorA)
+            }else if(layer_height_percent > TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
-            }else if(layer_height_percent == ColorA)
+            }else if(layer_height_percent == TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0.5;
@@ -471,14 +471,14 @@ void GCodeExport::writeMoveE4TIOO()
         snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
     }else if(currentLayer >= 0)
     {
-        if(ColorMixing == COLOR_LAYER)
+        if(TIOON_type == COLOR_LAYER)
         {
             writeMoveE4TIOO_LAYER();
         }
-        else if (ColorMixing == COLOR_MIX)
+        else if (TIOON_type == COLOR_MIX)
         {
             writeMoveE4TIOO_MIX();
-        }else if (ColorMixing == COLOR_DOUBLE)
+        }else if (TIOON_type == COLOR_DOUBLE)
         {
             extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
             if(extruderNr == 0)
@@ -491,7 +491,7 @@ void GCodeExport::writeMoveE4TIOO()
                 extrusionBAmount += extrusionAmountTmp;
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s B%0.5f", gcodeStr, extrusionBAmount);
             }
-        }else if (ColorMixing == COLOR_SINGLE)
+        }else if (TIOON_type == COLOR_SINGLE)
         {
             snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, 0.5*extrusionAmount, 0.5*extrusionAmount);
         }
@@ -513,7 +513,7 @@ void GCodeExport::writeMoveE4FL(Point p)
         {
             e = 10.0f;
         }
-        if(is2In1OutNozzle)
+        if(TIOON_isEnable)
         {
             writeLine("%s E%0.5f B%0.5f",gcodeStr, e * 0.5, e * 0.5);
             writeLine("G92 E0 B0");
@@ -550,9 +550,9 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     writeLine("G11");
                 }else{
                     extrusionAmount += retractionAmountPrime;
-                    if(is2In1OutNozzle)
+                    if(TIOON_isEnable)
                     {
-                        if(/* layerNr >= 0 && */COLOR_SINGLE == ColorMixing)
+                        if(/* layerNr >= 0 && */COLOR_SINGLE == TIOON_type)
                             writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, 0.5* extrusionAmount, 0.5* extrusionAmount);
                         else
                             writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, extrusionAAmount, extrusionBAmount);
@@ -587,7 +587,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         }
         if (lineWidth != 0)
         {
-            if(!is2In1OutNozzle)
+            if(!TIOON_isEnable)
             {
                 snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], extrusionAmount);
             }else
@@ -620,9 +620,9 @@ void GCodeExport::writeRetraction(bool force)
         {
             writeLine("G10");
         }else{
-            if(is2In1OutNozzle)
+            if(TIOON_isEnable)
             {
-                if(ColorMixing == COLOR_DOUBLE)
+                if(TIOON_type == COLOR_DOUBLE)
                 {
                     if(extruderNr == 0)
                         writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAAmount - retractionAmount);
@@ -630,7 +630,7 @@ void GCodeExport::writeRetraction(bool force)
                         writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionBAmount - retractionAmount);
                 }else
                 {
-                    if (currentLayer >= 0 && ColorMixing == COLOR_SINGLE)
+                    if (currentLayer >= 0 && TIOON_type == COLOR_SINGLE)
                     {
                         writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60,  0.5*extrusionAmount - retractionAmount, 0.5*extrusionAmount);
                     }else
@@ -670,7 +670,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         writeLine("G10 S1");
     }else{
-        if(is2In1OutNozzle)
+        if(TIOON_isEnable)
         {
             /*
             snprintf(gcodeStr, sizeof(gcodeStr), "G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
@@ -796,16 +796,16 @@ void GCodeExport::setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Off
     extruder0Offset_Y = _extruder0Offset_Y;
 }
 
-void GCodeExport::setColorMixing(int _ColorMixing, int _ColorA, int _ColorB, int _OverlapCount, int _ColorMixType, int _FixedProportionColorA, int _FixedProportionColorB, int _is2In1OutNozzle)
+void GCodeExport::setColorMixing(int _TIOON_type, int _TIOON_mix_a, int _TIOON_mix_b, int _TIOON_overlap_count, int _TIOON_mix_type, int _TIOON_fixed_proportion_a, int _TIOON_fixed_proportion_b, int _TIOON_isEnable)
 {
-    ColorMixing = _ColorMixing;
-    ColorA = _ColorA;
-    ColorB = _ColorB;
-    OverlapCount = _OverlapCount;
-    ColorMixType = _ColorMixType;
-    FixedProportionColorA = _FixedProportionColorA;
-    FixedProportionColorB = _FixedProportionColorB;
-    is2In1OutNozzle = _is2In1OutNozzle==1?true:false;
+    TIOON_type = _TIOON_type;
+    TIOON_mix_a = _TIOON_mix_a;
+    TIOON_mix_b = _TIOON_mix_b;
+    TIOON_overlap_count = _TIOON_overlap_count;
+    TIOON_mix_type = _TIOON_mix_type;
+    TIOON_fixed_proportion_a = _TIOON_fixed_proportion_a;
+    TIOON_fixed_proportion_b = _TIOON_fixed_proportion_b;
+    TIOON_isEnable = _TIOON_isEnable==1?true:false;
 }
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)
