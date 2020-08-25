@@ -20,3 +20,5 @@ CuraEngine.layout
 CuraEngine.cbp
 .svn
 /CMakeLists.txt.user
+/build
+/cmake_build
