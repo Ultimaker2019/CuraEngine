@@ -25,11 +25,11 @@ class PolygonRef
 {
     ClipperLib::Path* polygon;
     PolygonRef()
-    : polygon(nullptr)
+        : polygon(nullptr)
     {}
 public:
     PolygonRef(ClipperLib::Path& polygon)
-    : polygon(&polygon)
+        : polygon(&polygon)
     {}
 
     unsigned int size() const
@@ -187,12 +187,12 @@ class Polygon : public PolygonRef
     ClipperLib::Path poly;
 public:
     Polygon()
-    : PolygonRef(poly)
+        : PolygonRef(poly)
     {
     }
 
     Polygon(const PolygonRef& other)
-    : PolygonRef(poly)
+        : PolygonRef(poly)
     {
         poly = *other.polygon;
     }
@@ -365,11 +365,11 @@ public:
     Point min, max;
 
     AABB()
-    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
+        : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
     }
     AABB(Polygons polys)
-    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
+        : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
         calculate(polys);
     }

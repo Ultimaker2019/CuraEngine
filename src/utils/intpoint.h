@@ -74,9 +74,9 @@ public:
     Point3 cross(const Point3& p)
     {
         return Point3(
-            y*p.z-z*p.y,
-            z*p.x-x*p.z,
-            x*p.y-y*p.x);
+                    y*p.z-z*p.y,
+                    z*p.x-x*p.z,
+                    x*p.y-y*p.x);
     }
 };
 

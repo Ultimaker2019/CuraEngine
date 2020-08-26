@@ -94,34 +94,34 @@ int main(int argc, char **argv)
             {
                 switch(*str)
                 {
-                case 'h':
-                    print_usage();
-                    exit(1);
-                case 'v':
-                    cura::increaseVerboseLevel();
-                    break;
-                case 'p':
-                    cura::enableProgressLogging();
-                    break;
-                case 'g':
-                    argn++;
-                    //Connect the GUI socket to the given port number.
-                    processor.guiConnect(atoi(argv[argn]));
-                    break;
-                case 'b':
-                    argn++;
-                    //The binaryMeshBlob is depricated and will be removed in the future.
-                    binaryMeshBlob = fopen(argv[argn], "rb");
-                    break;
-                case 'o':
-                    argn++;
-                    if (!processor.setTargetFile(argv[argn]))
-                    {
-                        cura::logError("Failed to open %s for output.\n", argv[argn]);
+                    case 'h':
+                        print_usage();
                         exit(1);
-                    }
-                    break;
-                case 'c':
+                    case 'v':
+                        cura::increaseVerboseLevel();
+                        break;
+                    case 'p':
+                        cura::enableProgressLogging();
+                        break;
+                    case 'g':
+                        argn++;
+                        //Connect the GUI socket to the given port number.
+                        processor.guiConnect(atoi(argv[argn]));
+                        break;
+                    case 'b':
+                        argn++;
+                        //The binaryMeshBlob is depricated and will be removed in the future.
+                        binaryMeshBlob = fopen(argv[argn], "rb");
+                        break;
+                    case 'o':
+                        argn++;
+                        if (!processor.setTargetFile(argv[argn]))
+                        {
+                            cura::logError("Failed to open %s for output.\n", argv[argn]);
+                            exit(1);
+                        }
+                        break;
+                    case 'c':
                     {
                         // Read a config file from the given path
                         argn++;
@@ -129,8 +129,8 @@ int main(int argc, char **argv)
                             cura::logError("Failed to read config '%s'\n", argv[argn]);
                         }
                     }
-                    break;
-                case 's':
+                        break;
+                    case 's':
                     {
                         //Parse the given setting and store it.
                         argn++;
@@ -143,17 +143,17 @@ int main(int argc, char **argv)
                                 cura::logError("Setting not found: %s %s\n", argv[argn], valuePtr);
                         }
                     }
-                    break;
-                case 'm':
-                    //Read the given rotation/scale matrix
-                    argn++;
-                    sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-                        &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
-                        &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
-                        &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
-                    break;
-                case '-':
-                    try {
+                        break;
+                    case 'm':
+                        //Read the given rotation/scale matrix
+                        argn++;
+                        sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+                               &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
+                                &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
+                                &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
+                        break;
+                    case '-':
+                        try {
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
                         if (files.size() > 0)
@@ -163,10 +163,10 @@ int main(int argc, char **argv)
                         cura::logError("Unknown exception\n");
                         exit(1);
                     }
-                    break;
-                default:
-                    cura::logError("Unknown option: %c\n", *str);
-                    break;
+                        break;
+                    default:
+                        cura::logError("Unknown option: %c\n", *str);
+                        break;
                 }
             }
         }else{

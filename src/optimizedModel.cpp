@@ -7,7 +7,7 @@
 
 #define MELD_DIST MM2INT(0.03)
 OptimizedVolume::OptimizedVolume(SimpleVolume* volume, OptimizedModel* model)
-: model(model)
+    : model(model)
 {
     points.reserve(volume->faces.size() * 3);
     faces.reserve(volume->faces.size());

@@ -91,7 +91,7 @@ Point Comb::getBounderyPointWithOffset(unsigned int polygonNr, unsigned int idx)
 }
 
 Comb::Comb(Polygons& _boundery)
-: boundery(_boundery)
+    : boundery(_boundery)
 {
     minX = new int64_t[boundery.size()];
     maxX = new int64_t[boundery.size()];

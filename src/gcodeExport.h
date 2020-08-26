@@ -66,6 +66,7 @@ private:
     int TIOON_fixed_proportion_b;
 
     char gcodeStr[96];
+    char gcodeStrTmp[96];
 public:
     
     GCodeExport();

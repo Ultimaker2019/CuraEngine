@@ -41,17 +41,17 @@ SimpleModel* loadModelSTL_ascii(SimpleModel *m,const char* filename, FMatrix3x3&
             n++;
             switch(n)
             {
-            case 1:
-                v0 = matrix.apply(vertex);
-                break;
-            case 2:
-                v1 = matrix.apply(vertex);
-                break;
-            case 3:
-                v2 = matrix.apply(vertex);
-                vol->addFace(v0, v1, v2);
-                n = 0;
-                break;
+                case 1:
+                    v0 = matrix.apply(vertex);
+                    break;
+                case 2:
+                    v1 = matrix.apply(vertex);
+                    break;
+                case 3:
+                    v2 = matrix.apply(vertex);
+                    vol->addFace(v0, v1, v2);
+                    n = 0;
+                    break;
             }
         }
     }
@@ -80,11 +80,11 @@ SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     m->volumes.push_back(SimpleVolume());
     SimpleVolume* vol = &m->volumes[m->volumes.size()-1];
-	if(vol == nullptr)
-	{
-		fclose(f);
-		return nullptr;
-	}
+    if(vol == nullptr)
+    {
+        fclose(f);
+        return nullptr;
+    }
 
     for(unsigned int i=0;i<faceCount;i++)
     {

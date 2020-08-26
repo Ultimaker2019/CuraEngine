@@ -30,7 +30,7 @@ void TimeEstimateCalculator::reset()
 // acceleration within the allotted distance.
 static inline double max_allowable_speed(double acceleration, double target_velocity, double distance)
 {
-  return sqrt(target_velocity*target_velocity-2*acceleration*distance);
+    return sqrt(target_velocity*target_velocity-2*acceleration*distance);
 }
 
 // Calculates the distance (not time) it takes to accelerate from initial_rate to target_rate using the given acceleration:
@@ -139,8 +139,8 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate)
             block.acceleration = max_acceleration[n];
     }
     
-    double vmax_junction = max_xy_jerk/2; 
-    double vmax_junction_factor = 1.0; 
+    double vmax_junction = max_xy_jerk/2;
+    double vmax_junction_factor = 1.0;
     if(current_abs_feedrate[Z_AXIS] > max_z_jerk/2)
         vmax_junction = std::min(vmax_junction, max_z_jerk/2);
     if(current_abs_feedrate[E_AXIS] > max_e_jerk/2)
@@ -154,13 +154,13 @@ void TimeEstimateCalculator::plan(Position newPos, double feedrate)
         vmax_junction = block.nominal_feedrate;
         if (xy_jerk > max_xy_jerk) {
             vmax_junction_factor = (max_xy_jerk/xy_jerk);
-        } 
+        }
         if(fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk) {
             vmax_junction_factor = std::min(vmax_junction_factor, (max_z_jerk/fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
-        } 
+        }
         if(fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk) {
             vmax_junction_factor = std::min(vmax_junction_factor, (max_e_jerk/fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
-        } 
+        }
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }
     

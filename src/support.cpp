@@ -144,7 +144,7 @@ bool SupportPolyGenerator::needSupportAt(Point p)
             }else
             {
                 if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z - supportZDistance >= z && (i == 0 || storage.grid[n][i-1].z + supportZDistance + supportThickness < z)
-                    && storage.grid[n][i].z - supportZDistance - supportThickness <= z)
+                        && storage.grid[n][i].z - supportZDistance - supportThickness <= z)
                 {
                     ok = true;
                     break;
@@ -195,9 +195,9 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
             startPoint.X --;
     }
 }
-    
+
 SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
-: storage(storage), z(z), everywhere(storage.everywhere)
+    : storage(storage), z(z), everywhere(storage.everywhere)
 {
     if (!storage.generated)
         return;

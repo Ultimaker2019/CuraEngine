@@ -60,8 +60,8 @@ public:
     int32_t gridScale;
     int32_t gridWidth, gridHeight;
     vector<SupportPoint>* grid;
-   	SupportStorage(){grid = nullptr;}
-	  ~SupportStorage(){if(grid) delete [] grid;}
+    SupportStorage(){grid = nullptr;}
+    ~SupportStorage(){if(grid) delete [] grid;}
 };
 /******************/
 

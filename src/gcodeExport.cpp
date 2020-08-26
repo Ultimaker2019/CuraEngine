@@ -61,6 +61,7 @@ GCodeExport::GCodeExport()
     totalLayer = -1;
 
     memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));//clear buffer
+    memset(gcodeStrTmp,0,sizeof(gcodeStrTmp)/sizeof(char));//clear buffer
 }
 
 GCodeExport::~GCodeExport()
@@ -366,13 +367,15 @@ void GCodeExport::writeMoveE4TIOO_LAYER()
         extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
         extrusionAAmount += extrusionAmountTmp * 1;
         extrusionBAmount += 0;
-        snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
     }else
     {
         extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
         extrusionBAmount += extrusionAmountTmp * 1;
         extrusionAAmount += 0;
-        snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
     }
 }
 
@@ -388,7 +391,8 @@ void GCodeExport::writeMoveE4TIOO_MIX()
         extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
         extrusionAAmount += extrusionAmountTmp * TIOON_fixed_proportion_a/100.0f;
         extrusionBAmount += extrusionAmountTmp * (1.0f - TIOON_fixed_proportion_a/100.0f);
-        snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
     }
     else if(0 == TIOON_mix_type){
         if (TIOON_mix_a > TIOON_mix_b)
@@ -399,19 +403,22 @@ void GCodeExport::writeMoveE4TIOO_MIX()
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * percent;
                 extrusionBAmount += extrusionAmountTmp * (1 - percent);
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else if(layer_height_percent < TIOON_mix_b)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else if(layer_height_percent > TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }
         }else if (TIOON_mix_a < TIOON_mix_b)
         {
@@ -421,19 +428,22 @@ void GCodeExport::writeMoveE4TIOO_MIX()
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * (1 - percent);
                 extrusionBAmount += extrusionAmountTmp * percent;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else if(layer_height_percent < TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else if(layer_height_percent > TIOON_mix_b)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }
         }else if (TIOON_mix_a == TIOON_mix_b)
         {
@@ -442,19 +452,22 @@ void GCodeExport::writeMoveE4TIOO_MIX()
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 1;
                 extrusionBAmount += extrusionAmountTmp * 0;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else if(layer_height_percent > TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0;
                 extrusionBAmount += extrusionAmountTmp * 1;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else if(layer_height_percent == TIOON_mix_a)
             {
                 extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
                 extrusionAAmount += extrusionAmountTmp * 0.5;
                 extrusionBAmount += extrusionAmountTmp * 0.5;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }
         }
     }
@@ -468,7 +481,8 @@ void GCodeExport::writeMoveE4TIOO()
         extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
         extrusionAAmount += extrusionAmountTmp * 0.5;
         extrusionBAmount += extrusionAmountTmp * 0.5;
-        snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, extrusionAAmount, extrusionBAmount);
+        strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
     }else if(currentLayer >= 0)
     {
         if(TIOON_type == COLOR_LAYER)
@@ -484,16 +498,19 @@ void GCodeExport::writeMoveE4TIOO()
             if(extruderNr == 0)
             {
                 extrusionAAmount += extrusionAmountTmp;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f", gcodeStr, extrusionAAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f", gcodeStr, extrusionAAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }
             else if(extruderNr == 1)
             {
                 extrusionBAmount += extrusionAmountTmp;
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s B%0.5f", gcodeStr, extrusionBAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s B%0.5f", gcodeStr, extrusionBAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }
         }else if (TIOON_type == COLOR_SINGLE)
         {
-            snprintf(gcodeStr, sizeof(gcodeStr), "%s E%0.5f B%0.5f", gcodeStr, 0.5*extrusionAmount, 0.5*extrusionAmount);
+            snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, 0.5*extrusionAmount, 0.5*extrusionAmount);
+            strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
         }
     }
 }
@@ -528,6 +545,7 @@ void GCodeExport::writeMoveE4FL(Point p)
 void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
     memset(gcodeStr,0,sizeof(gcodeStr)/sizeof(char));//clear buffer
+    memset(gcodeStrTmp,0,sizeof(gcodeStrTmp)/sizeof(char));//clear buffer
 
     if (currentPosition.x == p.X && currentPosition.y == p.Y && currentPosition.z == zPos)
         return;
@@ -576,20 +594,24 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 
         if (currentSpeed != speed)
         {
-            snprintf(gcodeStr, sizeof(gcodeStr), "%s F%i", gcodeStr, speed * 60);
+            snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s F%i", gcodeStr, speed * 60);
+            strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             currentSpeed = speed;
         }
 
-        snprintf(gcodeStr, sizeof(gcodeStr), "%s X%0.3f Y%0.3f", gcodeStr, INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y));
+        snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s X%0.3f Y%0.3f", gcodeStr, INT2MM(p.X - extruderOffset[extruderNr].X - extruder0Offset_X), INT2MM(p.Y - extruderOffset[extruderNr].Y - extruder0Offset_Y));
+        strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
         if (zPos != currentPosition.z)
         {
-            snprintf(gcodeStr, sizeof(gcodeStr), "%s Z%0.3f", gcodeStr, INT2MM(zPos));
+            snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s Z%0.3f", gcodeStr, INT2MM(zPos));
+            strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
         }
         if (lineWidth != 0)
         {
             if(!TIOON_isEnable)
             {
-                snprintf(gcodeStr, sizeof(gcodeStr), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], extrusionAmount);
+                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], extrusionAmount);
+                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
             }else
             {
                 writeMoveE4TIOO();

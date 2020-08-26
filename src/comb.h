@@ -20,7 +20,7 @@ private:
     Point sp;
     Point ep;
 
-    bool preTest(Point startPoint, Point endPoint);    
+    bool preTest(Point startPoint, Point endPoint);
     bool collisionTest(Point startPoint, Point endPoint);
 
     void calcMinMax();

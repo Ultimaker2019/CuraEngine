@@ -30,7 +30,7 @@ private:
     GCodePathConfig supportConfig;
 public:
     fffProcessor(ConfigSettings& config)
-    : config(config)
+        : config(config)
     {
         fileNr = 1;
         maxObjectHeight = 0;
@@ -476,7 +476,7 @@ private:
             {
                 int n = config.initialSpeedupLayers;
 #define SPEED_SMOOTH(speed) \
-                std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
+    std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
                 skirtConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SKIRT");
                 inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER");
@@ -662,9 +662,9 @@ private:
                 {
                     case INFILL_AUTOMATIC:
                         generateAutomaticInfill(
-                            part->sparseOutline, infillPolygons, extrusionWidth,
-                            config.sparseInfillLineDistance,
-                            config.infillOverlap, fillAngle);
+                                    part->sparseOutline, infillPolygons, extrusionWidth,
+                                    config.sparseInfillLineDistance,
+                                    config.infillOverlap, fillAngle);
                         break;
 
                     case INFILL_GRID:
@@ -683,8 +683,8 @@ private:
 
                     case INFILL_CONCENTRIC:
                         generateConcentricInfill(
-                            part->sparseOutline, infillPolygons,
-                            config.sparseInfillLineDistance);
+                                    part->sparseOutline, infillPolygons,
+                                    config.sparseInfillLineDistance);
                         break;
                 }
             }
@@ -785,29 +785,29 @@ private:
             {
                 switch(config.supportType)
                 {
-                case SUPPORT_TYPE_GRID:
-                    if (config.supportLineDistance > config.extrusionWidth * 4)
-                    {
-                        generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
-                        generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
-                    }else{
-                        generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
-                    }
-                    break;
-                case SUPPORT_TYPE_LINES:
-                    if (layerNr == 0)
-                    {
-                        generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap + 150, 0);
-                        generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap + 150, 90);
-                    }else{
-                        if(isSurface)
+                    case SUPPORT_TYPE_GRID:
+                        if (config.supportLineDistance > config.extrusionWidth * 4)
                         {
-                            generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportSurfaceLineDistance, config.infillOverlap, 90);
-                        } else {
-                            generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, 0);
+                            generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
+                            generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+                        }else{
+                            generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
                         }
-                    }
-                    break;
+                        break;
+                    case SUPPORT_TYPE_LINES:
+                        if (layerNr == 0)
+                        {
+                            generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap + 150, 0);
+                            generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap + 150, 90);
+                        }else{
+                            if(isSurface)
+                            {
+                                generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportSurfaceLineDistance, config.infillOverlap, 90);
+                            } else {
+                                generateLineConnectInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, 0);
+                            }
+                        }
+                        break;
                 }
             }
 
