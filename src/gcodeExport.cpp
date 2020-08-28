@@ -949,7 +949,13 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
     PathOrderOptimizer orderOptimizer(tmpPoint);
     //PathOrderOptimizer orderOptimizer(lastPosition);
     for(unsigned int i=0;i<polygons.size();i++)
+    {
+        if(polygons[i].orientation())
+        {
+            polygons[i].reverse();
+        }
         orderOptimizer.addPolygon(polygons[i]);
+    }
     orderOptimizer.optimize();
     for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
     {

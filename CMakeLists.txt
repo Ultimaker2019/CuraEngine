@@ -12,7 +12,7 @@ set(ENGINE_VERSION 1.0)
 set(CMAKE_BUILD_TYPE RELEASE) #DEBUG or RELEASE
 
 # Add warnings
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wno-old-style-cast -Woverloaded-virtual -Wno-class-memaccess")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wno-old-style-cast -Woverloaded-virtual -Wno-class-memaccess -isystem libs ")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -O0 -g -ggdb ")
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fomit-frame-pointer ")
 
