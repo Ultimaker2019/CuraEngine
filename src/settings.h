@@ -244,6 +244,8 @@ public:
     int TIOON_fixed_proportion_a;
     int TIOON_fixed_proportion_b;
 
+    int isEncryptGcode;
+
     int nozzleType;
 
 };

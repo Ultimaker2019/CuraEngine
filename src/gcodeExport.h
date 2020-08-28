@@ -65,6 +65,8 @@ private:
     int TIOON_fixed_proportion_a;
     int TIOON_fixed_proportion_b;
 
+    bool isEncryptGcode;
+
     char gcodeStr[96];
     char gcodeStrTmp[96];
 public:
@@ -80,6 +82,8 @@ public:
     void setExtruder0OffsetXY(int _extruder0Offset_X, int _extruder0Offset_Y);
 
     void setTIOONSettings(int _TIOON_type, int _TIOON_mix_a, int _TIOON_mix_b, int _TIOON_overlap_count, int _TIOON_mix_type, int _TIOON_fixed_proportion_a, int _TIOON_fixed_proportion_b, int _TIOON_isEnable);
+
+    void setEncryptGcode(int _isEncryptGcode);
 
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     

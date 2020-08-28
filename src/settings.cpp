@@ -148,6 +148,8 @@ ConfigSettings::ConfigSettings()
     SETTING(TIOON_fixed_proportion_a, 100);
     SETTING(TIOON_fixed_proportion_b, 0);
 
+    SETTING(isEncryptGcode, 0);
+
     SETTING(nozzleType, 0);
 
     startCode =

@@ -56,6 +56,9 @@ GCodeExport::GCodeExport()
     TIOON_mix_type = 0;
     TIOON_fixed_proportion_a = 100;
     TIOON_fixed_proportion_b = 0;
+
+    isEncryptGcode = false;
+
     
     currentLayer = -1;
     totalLayer = -1;
@@ -265,7 +268,7 @@ void GCodeExport::writeLine(const char* line, ...)
     va_start(args, line);
     //vfprintf(f, line, args);
     vsprintf(gcode_cmd, line, args);
-    if(TIOON_isEnable)
+    if(isEncryptGcode)
     {
         int len = strlen(gcode_cmd);
         for(int i = 0;i < len;i ++)
@@ -828,6 +831,11 @@ void GCodeExport::setTIOONSettings(int _TIOON_type, int _TIOON_mix_a, int _TIOON
     TIOON_fixed_proportion_a = _TIOON_fixed_proportion_a;
     TIOON_fixed_proportion_b = _TIOON_fixed_proportion_b;
     TIOON_isEnable = _TIOON_isEnable==1?true:false;
+}
+
+void GCodeExport::setEncryptGcode(int _isEncryptGcode)
+{
+    isEncryptGcode = _isEncryptGcode==1?true:false;
 }
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)
