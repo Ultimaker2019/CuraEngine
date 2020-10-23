@@ -204,6 +204,7 @@ private:
     Comb* comb;
     
     GCodePathConfig travelConfig;
+    GCodePathConfig wallouterConfig;
     int extrudeSpeedFactor;
     int travelSpeedFactor;
     int currentExtruder;

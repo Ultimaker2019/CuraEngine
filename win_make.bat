@@ -1,5 +1,5 @@
 echo off
-set COMPILER_PATH=C:\Users\edwar\OneDrive\compiler_tools
+set COMPILER_PATH=E:\compiler_tools
 set PATH=C:\Program Files\CMake\bin;
 set PATH=C:\Program Files (x86)\NSIS;%PATH%
 set PATH=C:\Program Files\Git\cmd;%PATH%

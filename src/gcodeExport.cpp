@@ -857,7 +857,7 @@ void GCodePlanner::forceNewPathStart()
 }
 
 GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance)
-    : gcode(gcode), travelConfig(travelSpeed, 0, "travel")
+    : gcode(gcode), travelConfig(travelSpeed, 0, "travel"),wallouterConfig(20, 0, "travel")
 {
     lastPosition = gcode.getPositionXY();
     comb = nullptr;
@@ -934,7 +934,19 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
 void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config)
 {
     Point p0 = polygon[startIdx];
-    addTravel(p0);
+    if(config != nullptr && strcmp(config->name,"WALL-OUTER") == 0)
+    {
+        if (!shorterThen(lastPosition - p0, retractionMinimalDistance))
+        {
+            addTravel(p0);
+        } else {
+            wallouterConfig.speed = config->speed;
+            addExtrusionMove(p0, &wallouterConfig);
+        }
+    } else
+    {
+        addTravel(p0);
+    }
     for(unsigned int i=1; i<polygon.size(); i++)
     {
         Point p1 = polygon[(startIdx + i) % polygon.size()];
@@ -942,14 +954,16 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
         p0 = p1;
     }
     if (polygon.size() > 2)
+    {
         addExtrusionMove(polygon[startIdx], config);
+    }
 }
 
 void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config)
 {
     Point tmpPoint = lastPosition;
     // Reset skin layer print order
-    if(strcmp(config->name,"SKIN") == 0)
+    if(config != nullptr && strcmp(config->name,"SKIN") == 0)
     {
         if(polygons.size() > 0 && polygons[polygons.size()-1].size() > 0)
             tmpPoint = polygons[0][0];
