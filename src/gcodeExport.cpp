@@ -1137,9 +1137,22 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 gcode.writeMove(path->points[i], speed, path->config->lineWidth);
             }
         }else{
-            for(unsigned int i=0; i<path->points.size(); i++)
+            static bool is_first_layer_wipe_tower = true;
+            if(path->config != nullptr && strcmp(path->config->name,"WIPE-TOWER") == 0 && is_first_layer_wipe_tower)
             {
-                gcode.writeMove(path->points[i], speed, path->config->lineWidth);
+                for(unsigned int i=0; i<path->points.size(); i++)
+                {
+                    if(path->config != nullptr && strcmp(path->config->name,"WIPE-TOWER") == 0 && is_first_layer_wipe_tower)
+                    {
+                        gcode.writeMove(path->points[i], speed, path->config->lineWidth * 1.5f);
+                    }
+                }
+                is_first_layer_wipe_tower = false;
+            } else {
+                for(unsigned int i=0; i<path->points.size(); i++)
+                {
+                    gcode.writeMove(path->points[i], speed, path->config->lineWidth);
+                }
             }
         }
     }
