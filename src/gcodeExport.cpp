@@ -897,6 +897,8 @@ void GCodePlanner::addTravel(Point p)
         vector<Point> pointList;
         if (comb->calc(lastPosition, p, pointList))
         {
+            if(pointList.size() > 0)
+                path->retract = true;
             for(unsigned int n=0; n<pointList.size(); n++)
             {
                 path->points.push_back(pointList[n]);
