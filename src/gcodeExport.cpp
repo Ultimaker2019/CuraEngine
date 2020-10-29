@@ -716,7 +716,13 @@ void GCodeExport::switchExtruder(int newExtruder)
             */
         }else
         {
-            writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+            if(isRetracted)
+            {
+                writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction + retractionAmount);
+                writeLine("G92 %c%0.5f", extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+            } else{
+                writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+            }
         }
         currentSpeed = retractionSpeed;
     }
@@ -1046,7 +1052,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     for(unsigned int n=0; n<paths.size(); n++)
     {
         GCodePath* path = &paths[n];
-        if (extruder != path->extruder)
+        if (path->config != &travelConfig && extruder != path->extruder)
         {
             extruder = path->extruder;
             gcode.switchExtruder(extruder);
