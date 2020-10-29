@@ -353,10 +353,12 @@ private:
             PolygonRef p = storage.wipeTower.newPoly();
             p.add(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000));
             p.add(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000 + config.wipeTowerSize));
-            p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000 + config.wipeTowerSize));
+            p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize * 3 / 4, storage.modelMax.y + 3000 + config.wipeTowerSize));
+            p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize * 3 / 4, storage.modelMax.y + 3000 + config.wipeTowerSize * 3 / 4));
+            p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000 + config.wipeTowerSize * 3 / 4));
             p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000));
 
-            storage.wipePoint = Point(storage.modelMin.x - 3000 - config.wipeTowerSize / 2, storage.modelMax.y + 3000 + config.wipeTowerSize / 2);
+            storage.wipePoint = Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000 + config.wipeTowerSize);
         }
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
@@ -830,6 +832,11 @@ private:
     {
         if (config.wipeTowerSize < 1)
             return;
+
+        //Make sure we wipe the current extruder on the wipe point.
+        gcodeLayer.forceRetract();
+        gcodeLayer.addTravel(storage.wipePoint - config.extruderOffset[gcodeLayer.getExtruder()].p() + config.extruderOffset[prevExtruder].p());
+
         //If we changed extruder, print the wipe/prime tower for this nozzle;
         gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &wipeTowerConfig);
         Polygons fillPolygons;

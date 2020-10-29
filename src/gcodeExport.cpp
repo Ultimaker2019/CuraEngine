@@ -932,6 +932,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
         comb->moveInside(&p, distance);
         if (comb->inside(p))
         {
+            forceRetract();
             addTravel(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
             forceNewPathStart();
