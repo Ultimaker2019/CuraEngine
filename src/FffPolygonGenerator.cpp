@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -32,7 +32,6 @@
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
-#include "infill/SpaghettiInfill.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
@@ -226,7 +225,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         // Do not add and process support _modifier_ meshes further, and ONLY skip support _modifiers_. They have been
         // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
         // processed in a later stage, except for support mesh itself, so an exception is made for that.
-        if (is_support_modifier && ! mesh.settings.get<bool>("support_mesh"))
+        if(is_support_modifier && !mesh.settings.get<bool>("support_mesh"))
         {
             storage.meshes.pop_back();
             continue;
@@ -722,53 +721,47 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 {
-    // generate spaghetti infill filling areas and volumes
-    if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
-    {
-        SpaghettiInfill::generateSpaghettiInfill(mesh);
+    if (mesh.settings.get<bool>("infill_support_enabled"))
+    {// create gradual infill areas
+        SkinInfillAreaComputation::generateInfillSupport(mesh);
     }
-    else
+
+    // create gradual infill areas
+    SkinInfillAreaComputation::generateGradualInfill(mesh);
+
+    //SubDivCube Pre-compute Octree
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
-        if (mesh.settings.get<bool>("infill_support_enabled"))
-        {// create gradual infill areas
-            SkinInfillAreaComputation::generateInfillSupport(mesh);
-        }
-
-        // create gradual infill areas
-        SkinInfillAreaComputation::generateGradualInfill(mesh);
-
-        //SubDivCube Pre-compute Octree
-        if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-            && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
-        {
-            SubDivCube::precomputeOctree(mesh);
-        }
-
-        // Pre-compute Cross Fractal
-        if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-            && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
-                || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
-        )
-        {
-            const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
-            std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
-            if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
-            {
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdisivion_spec_image_file);
-            }
-            else
-            {
-                if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
-                {
-                    logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
-                }
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
-            }
-        }
-
-        // combine infill
-        SkinInfillAreaComputation::combineInfillLayers(mesh);
+        const Point3 mesh_middle = mesh.bounding_box.getMiddle();
+        const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+        SubDivCube::precomputeOctree(mesh, infill_origin);
     }
+
+    // Pre-compute Cross Fractal
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
+            || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
+    )
+    {
+        const std::string cross_subdivision_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
+        std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
+        if (!cross_subdivision_spec_image_file.empty() && cross_fs.good())
+        {
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdivision_spec_image_file);
+        }
+        else
+        {
+            if (!cross_subdivision_spec_image_file.empty() && cross_subdivision_spec_image_file != " ")
+            {
+                logError("Cannot find density image \'%s\'.", cross_subdivision_spec_image_file.c_str());
+            }
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
+        }
+    }
+
+    // combine infill
+    SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // fuzzy skin
     if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
@@ -835,7 +828,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
 
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers)
 {
-    int n_empty_first_layers = 0;
+    size_t n_empty_first_layers = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         if (isEmptyLayer(storage, layer_idx))
@@ -854,6 +847,11 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             std::vector<SliceLayer>& layers = mesh.layers;
+            if (layers.size() > n_empty_first_layers)
+            {
+                // transfer initial layer thickness to new initial layer
+                layers[n_empty_first_layers].thickness = layers[0].thickness;
+            }
             layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
             for (SliceLayer& layer : layers)
             {
@@ -1018,8 +1016,18 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower));
     }
 
-    const int draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
+    const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
     storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
+
+    //Extra offset has rounded joints, so simplify again.
+    coord_t maximum_resolution = 0; //Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
+    coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
+    for(const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+    {
+        maximum_resolution = std::max(maximum_resolution, extruder.settings.get<coord_t>("meshfix_maximum_resolution"));
+        maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
+    }
+    storage.draft_protection_shield.simplify(maximum_resolution, maximum_deviation);
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
