@@ -17,7 +17,6 @@
 #include "Slice.h"
 #include "wallOverlap.h"
 #include "communication/Communication.h" //To send layer view data.
-#include "infill/SpaghettiInfillPathGenerator.h"
 #include "progress/Progress.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
@@ -343,7 +342,7 @@ unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     size_t start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::NONE)
     {
-        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable")) && mesh_group_settings.get<bool>("support_brim_enable"))
+        if (mesh_group_settings.get<bool>("support_enable") && mesh_group_settings.get<bool>("support_brim_enable"))
         {
             start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
         }
@@ -1028,18 +1027,25 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
+    Polygons first_skirt_brim;
     Polygons skirt_brim;
     // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.
     for (size_t i_part = 0; i_part < original_skirt_brim.size(); ++i_part)
     {
         if (i_part < storage.skirt_brim_max_locked_part_order[extruder_nr])
         {
-            gcode_layer.addPolygon(original_skirt_brim[i_part], 0, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+            first_skirt_brim.add(original_skirt_brim[i_part]);
         }
         else
         {
             skirt_brim.add(original_skirt_brim[i_part]);
         }
+    }
+
+    if (!first_skirt_brim.empty())
+    {
+        gcode_layer.addTravel(first_skirt_brim.back().closestPointTo(start_close_to));
+        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
     }
 
     if (skirt_brim.empty())
@@ -1392,16 +1398,9 @@ bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& g
     {
         return false;
     }
-    if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
-    {
-        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part);
-    }
-    else
-    {
-        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
-        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
-        return added_something;
-    }
+    bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    return added_something;
 }
 
 bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
@@ -1559,10 +1558,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         size_t skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
         if (skin_edge_support_layers > 0)
         {
-            Polygons skin_above;        // skin regions on the immediate layer above
-            Polygons skin_above_upper;  // skin regions on the 2nd and subsequent layers above
+            Polygons skin_above_combined;  // skin regions on the layers above combined with small gaps between
 
-            for (size_t i = 1; i <= skin_edge_support_layers; ++i)
+            constexpr coord_t tiny_infill_offset = 20;
+
+            // working from the highest layer downwards, combine the regions of skin on all the layers but don't let the regions merge together
+            // otherwise "terraced" skin regions on separate layers will look like a single region of unbroken skin
+
+            for (size_t i = skin_edge_support_layers; i > 0; --i)
             {
                 const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
                 if (skin_layer_nr < mesh.layers.size())
@@ -1571,29 +1574,87 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                     {
                         for (const SkinPart& skin_part : part.skin_parts)
                         {
-                            if (i == 1)
+                            if (skin_above_combined.size())
                             {
-                                skin_above.add(skin_part.outline);
+                                // does this skin part overlap with any of the skin parts on the layers above?
+                                const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
+                                if (overlap.size())
+                                {
+                                    // yes, it overlaps, need to leave a gap between this skin part and the others
+                                    if (i > 1)
+                                    {
+                                        // this layer is the 2nd or higher layer above the layer whose infill we're printing
+
+                                        // looking from the side, if the combined regions so far look like this...
+                                        //
+                                        //     ----------------------------------
+                                        //
+                                        // and the new skin part looks like this...
+                                        //
+                                        //             -------------------------------------
+                                        //
+                                        // the result should be like this...
+                                        //
+                                        //     ------- -------------------------- ----------
+
+                                        // expand the overlap region slightly to make a small gap
+                                        const Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
+                                        // subtract the expanded overlap region from the regions accumulated from higher layers
+                                        skin_above_combined = skin_above_combined.difference(overlap_expanded);
+                                        // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
+                                        skin_above_combined.add(skin_part.outline.difference(overlap_expanded));
+                                        // and add the overlap area as well
+                                        skin_above_combined.add(overlap);
+                                    }
+                                    else
+                                    {
+                                        // this layer is the 1st layer above the layer whose infill we're printing
+
+                                        // add this layer's skin region without subtracting the overlap but still make a gap between this
+                                        // skin region and what has been accumulated so far
+                                        // we do this so that these skin region edges will definitely have infill walls below them
+
+                                        // looking from the side, if the combined regions so far look like this...
+                                        //
+                                        //     ----------------------------------
+                                        //
+                                        // and the new skin part looks like this...
+                                        //
+                                        //             -------------------------------------
+                                        //
+                                        // the result should be like this...
+                                        //
+                                        //     ------- -------------------------------------
+
+                                        skin_above_combined = skin_above_combined.difference(skin_part.outline.offset(tiny_infill_offset));
+                                        skin_above_combined.add(skin_part.outline);
+                                    }
+                                }
+                                else
+                                {
+                                    // no overlap
+                                    skin_above_combined.add(skin_part.outline);
+                                }
                             }
                             else
                             {
-                                skin_above_upper.add(skin_part.outline);
+                                // this is the first skin region we have looked at
+                                skin_above_combined.add(skin_part.outline);
                             }
                         }
                     }
                 }
             }
 
+            // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls
+            // otherwise the infill walls could merge and form a bump
+            Polygons infill_below_skin = skin_above_combined.intersection(in_outline).offset(-infill_line_width).offset(infill_line_width);
+
             constexpr double min_area_multiplier = 25;
             const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+            constexpr bool remove_small_holes_from_infill_below_skin = true;
 
-            Polygons infill_below_skin = skin_above.intersection(in_outline);
-            infill_below_skin.removeSmallAreas(min_area);
-
-            // combine the skin regions with a small gap between them
-            constexpr coord_t tiny_infill_offset = 10;
-            infill_below_skin.add(skin_above_upper.unionPolygons().intersection(in_outline).difference(infill_below_skin.offset(tiny_infill_offset)));
-            infill_below_skin.removeSmallAreas(min_area);
+            infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
             if (infill_below_skin.size())
             {
@@ -1606,7 +1667,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                     Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
                     infill_not_below_skin.removeSmallAreas(min_area);
 
-                    if (infill_not_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).size())
+                    if (infill_not_below_skin.size())
                     {
                         constexpr Polygons* perimeter_gaps = nullptr;
                         constexpr bool connected_zigzags = false;
@@ -1792,7 +1853,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // if support is enabled, add the support outlines also so we don't generate bridges over support
 
             const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
+            if (mesh_group_settings.get<bool>("support_enable"))
             {
                 const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
                 const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
@@ -2197,7 +2258,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
 
-    if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
+    if (mesh_group_settings.get<bool>("support_enable"))
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
