@@ -657,9 +657,8 @@ private:
             }
 
             Polygons infillPolygons;
-            int fillAngle = 45;
             if (layerNr & 1)
-                fillAngle += 90;
+                config.infillAngle += 90;
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
@@ -671,21 +670,21 @@ private:
                         generateAutomaticInfill(
                                     part->sparseOutline, infillPolygons, extrusionWidth,
                                     config.sparseInfillLineDistance,
-                                    config.infillOverlap, fillAngle);
+                                    config.infillOverlap, config.infillAngle);
                         break;
 
                     case INFILL_GRID:
                         generateGridInfill(part->sparseOutline, infillPolygons,
                                            extrusionWidth,
                                            config.sparseInfillLineDistance,
-                                           config.infillOverlap, fillAngle);
+                                           config.infillOverlap, config.infillAngle);
                         break;
 
                     case INFILL_LINES:
                         generateLineInfill(part->sparseOutline, infillPolygons,
                                            extrusionWidth,
                                            config.sparseInfillLineDistance,
-                                           config.infillOverlap, fillAngle);
+                                           config.infillOverlap, config.infillAngle);
                         break;
 
                     case INFILL_CONCENTRIC:
@@ -724,7 +723,7 @@ private:
                 if (layerNr > 0)
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
                 // Set the line width of the first layer as the normal value, and set the line width of each layer upward to the original 98.5% to avoid overflow
-                generateLineInfill(outline, skinPolygons, extrusionWidth, (layerNr == 0)?extrusionWidth:extrusionWidth*995/1000, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                generateLineInfill(outline, skinPolygons, extrusionWidth, (layerNr == 0)?extrusionWidth:extrusionWidth*995/1000, config.infillOverlap, (bridge > -1) ? bridge : config.infillAngle);
             }
             if (config.enableCombing == COMBING_NOSKIN)
             {

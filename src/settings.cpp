@@ -43,6 +43,7 @@ ConfigSettings::ConfigSettings()
     SETTING(infillOverlap, 15);
     SETTING(infillSpeed, 50);
     SETTING(infillPattern, INFILL_AUTOMATIC);
+    SETTING(infillAngle, 45);
     SETTING(skinSpeed, 50);
 
     SETTING(supportType, SUPPORT_TYPE_GRID);
