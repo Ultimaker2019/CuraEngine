@@ -467,6 +467,8 @@ private:
 
                 gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
             }
+
+            gcode.resetExtrusionValue();
         }
 
         int volumeIdx = 0;

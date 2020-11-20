@@ -497,19 +497,8 @@ void GCodeExport::writeMoveE4TIOO()
             writeMoveE4TIOO_MIX();
         }else if (TIOON_type == COLOR_DOUBLE)
         {
-            extrusionAmountTmp = extrusionAmount - extrusionAAmount - extrusionBAmount;
-            if(extruderNr == 0)
-            {
-                extrusionAAmount += extrusionAmountTmp;
-                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f", gcodeStr, extrusionAAmount);
-                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
-            }
-            else if(extruderNr == 1)
-            {
-                extrusionBAmount += extrusionAmountTmp;
-                snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s B%0.5f", gcodeStr, extrusionBAmount);
-                strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
-            }
+            snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s %c%0.5f", gcodeStr, extruderCharacter[extruderNr], extrusionAmount);
+            strncpy(gcodeStr, gcodeStrTmp, sizeof(gcodeStrTmp)/sizeof(char));
         }else if (TIOON_type == COLOR_SINGLE)
         {
             snprintf(gcodeStrTmp, sizeof(gcodeStrTmp), "%s E%0.5f B%0.5f", gcodeStr, 0.5*extrusionAmount, 0.5*extrusionAmount);
@@ -574,9 +563,15 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     if(TIOON_isEnable)
                     {
                         if(/* layerNr >= 0 && */COLOR_SINGLE == TIOON_type)
+                        {
                             writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, 0.5* extrusionAmount, 0.5* extrusionAmount);
-                        else
+                        } else if(COLOR_DOUBLE == TIOON_type)
+                        {
+                            writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
+                        } else
+                        {
                             writeLine("G1 F%i E%0.5f B%0.5f", retractionSpeed * 60, extrusionAAmount, extrusionBAmount);
+                        }
                     }
                     else
                     {
@@ -649,10 +644,7 @@ void GCodeExport::writeRetraction(bool force)
             {
                 if(TIOON_type == COLOR_DOUBLE)
                 {
-                    if(extruderNr == 0)
-                        writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAAmount - retractionAmount);
-                    else if(extruderNr == 1)
-                        writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionBAmount - retractionAmount);
+                    writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
                 }else
                 {
                     if (currentLayer >= 0 && TIOON_type == COLOR_SINGLE)
@@ -714,6 +706,14 @@ void GCodeExport::switchExtruder(int newExtruder)
             writeChecksum(gcodeStr);
             snprintf(gcodeStr, sizeof(gcodeStr), "G92 E0 B0");
             */
+            if (TIOON_type == COLOR_DOUBLE)
+            {
+                if(isRetracted)
+                {
+                    writeLine("G1 F%i %c%0.5f", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount + retractionAmount);
+                    writeLine("G92 %c%0.5f", extruderCharacter[extruderNr], 0);
+                }
+            }
         }else
         {
             if(isRetracted)
