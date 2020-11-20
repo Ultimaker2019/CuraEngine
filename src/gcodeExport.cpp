@@ -964,7 +964,19 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
     if (polygon.size() > 2)
     {
-        addExtrusionMove(polygon[startIdx], config);
+        if(config != nullptr && (strcmp(config->name,"WALL-OUTER") == 0 || strcmp(config->name,"WALL-INNER") == 0))
+        {
+            int distance = sqrt((p0.X - polygon[startIdx].X)*(p0.X - polygon[startIdx].X)+(p0.Y - polygon[startIdx].Y)*(p0.Y - polygon[startIdx].Y));
+            if (distance > config->lineWidth / 2)
+            {
+                int y = (config->lineWidth / 2 * (p0.Y - polygon[startIdx].Y))/distance + polygon[startIdx].Y;
+                int x = (config->lineWidth / 2 * (p0.X - polygon[startIdx].X))/distance + polygon[startIdx].X;
+                addExtrusionMove(Point(x,y), config);
+            }
+        }else
+        {
+            addExtrusionMove(polygon[startIdx], config);
+        }
     }
 }
 
