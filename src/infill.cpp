@@ -94,7 +94,7 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
         qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[idx].size(); i+=2)
         {
-            if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 5)
+            if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth)
                 continue;
             PolygonRef p = result.newPoly();
             p.add(matrix.unapply(Point(x, cutList[idx][i])));
