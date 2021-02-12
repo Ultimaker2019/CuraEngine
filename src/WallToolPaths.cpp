@@ -16,7 +16,7 @@ namespace cura
 {
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset,
-                             const Settings& settings)
+                             const Settings& settings, int debug_layer)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
@@ -29,11 +29,12 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
     , toolpaths_generated(false)
     , settings(settings)
+    , debug_layer(debug_layer)
 {
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
+                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings, int debug_layer)
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
@@ -46,6 +47,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
     , toolpaths_generated(false)
     , settings(settings)
+    , debug_layer(debug_layer)
 {
 }
 
@@ -75,7 +77,7 @@ const VariableWidthPaths& WallToolPaths::generate()
             strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
             min_feature_size, wall_transition_threshold, max_bead_count, wall_0_inset));
         const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
+        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length, debug_layer);
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }

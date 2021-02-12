@@ -462,22 +462,23 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             continue; //Remove the vertex.
         }
-        //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
-        //1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
-        //A = 1/2 * b * h     [triangle area formula]
-        //L = b * h           [apply above two and take out the 1/2]
-        //h = L / b           [divide by b]
-        //h^2 = (L / b)^2     [square it]
-        //h^2 = L^2 / b^2     [factor the divisor]
-        const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDistFromLine(current, previous, next) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
-        {
-            continue;
-        }
 
-        if (length2 < smallest_line_segment_squared
-            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
+        ////We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
+        ////1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
+        ////A = 1/2 * b * h     [triangle area formula]
+        ////L = b * h           [apply above two and take out the 1/2]
+        ////h = L / b           [divide by b]
+        ////h^2 = (L / b)^2     [square it]
+        ////h^2 = L^2 / b^2     [factor the divisor]
+        //const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
+        //if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
+        //    && LinearAlg2D::getDistFromLine(current, previous, next) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        //{
+        //    continue;
+        //}
+
+        if (length2 < smallest_line_segment_squared)
+//            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
         {
             const coord_t next_length2 = vSize2(current - next);
             if (next_length2 > smallest_line_segment_squared)

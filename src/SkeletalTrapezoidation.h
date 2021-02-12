@@ -21,6 +21,8 @@
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "SkeletalTrapezoidationGraph.h"
 
+#define SASSERT(x)  if(! (x)) { std::fprintf(stderr, "IN LAYER: %ld", debug_layer); assert((x)); }
+
 namespace cura
 {
 
@@ -65,6 +67,8 @@ class SkeletalTrapezoidation
     static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
 
+    int debug_layer;
+
     /*!
      * The strategy to use to fill a certain shape with lines.
      *
@@ -76,6 +80,7 @@ class SkeletalTrapezoidation
     const BeadingStrategy& beading_strategy;
 
 public:
+
     using Segment = PolygonsSegmentIndex;
 
     /*!
@@ -100,7 +105,8 @@ public:
                            AngleRadians transitioning_angle
     , coord_t discretization_step_size = MM2INT(0.8)
     , coord_t transition_filter_dist = MM2INT(1)
-    , coord_t beading_propagation_transition_dist = MM2INT(0.4));
+    , coord_t beading_propagation_transition_dist = MM2INT(0.4),
+        int debug_layer = -1);
 
     /*!
      * A skeletal graph through the polygons that we need to fill with beads.

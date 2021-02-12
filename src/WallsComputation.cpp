@@ -69,7 +69,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
     }
     else
     {
-        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings);
+        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings, layer_nr);
         part->wall_toolpaths = wall_tool_paths.getToolPaths();
         part->inner_area = wall_tool_paths.getInnerContour();
     }
