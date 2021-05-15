@@ -398,6 +398,7 @@ private:
         fileNr++;
 
         unsigned int totalLayers = storage.volumes[0].layers.size();
+        gcode.writeFanCommand(0);
         gcode.writeComment("Force Re-Check is on");
         gcode.writeLine("M305 S1");
         gcode.writeComment("Layer count: %d", totalLayers);
