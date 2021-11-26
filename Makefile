@@ -67,8 +67,8 @@ else
 	ifeq ($(UNAME), Darwin)
 		OPEN_HTML=open
 		#For MacOS force to build
-		CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
-		LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
+		CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.15 -arch x86_64
+		LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.15 -arch x86_64
 	endif
 endif
 
