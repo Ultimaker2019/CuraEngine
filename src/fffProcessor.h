@@ -646,6 +646,7 @@ private:
         }
         partOrderOptimizer.optimize();
 
+        bool isSetInfillAngleOnce = true;
         for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
         {
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
@@ -660,8 +661,11 @@ private:
             }
 
             Polygons infillPolygons;
-            if (layerNr & 1)
+            if (isSetInfillAngleOnce && (layerNr & 1))
+            {
                 config.infillAngle += 90;
+                isSetInfillAngleOnce = false;
+            }
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
