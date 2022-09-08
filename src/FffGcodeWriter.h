@@ -124,6 +124,18 @@ public:
     }
 
     /*!
+     * Set the target to write gcode to: an output stream.
+     * 
+     * Used when CuraEngine is NOT used as command line tool.
+     * 
+     * \param stream The stream to write gcode to.
+     */
+    void setTargetFileStream(std::ostream* stream)
+    {
+        gcode.setOutputFileStream(stream);
+    }
+
+    /*!
      * Get the total extruded volume for a specific extruder in mm^3
      * 
      * Retractions and unretractions don't contribute to this.
