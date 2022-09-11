@@ -15,6 +15,8 @@
 namespace cura
 {
 
+std::ofstream output_file_tmp;
+
 Application::Application()
 {
 }
@@ -178,6 +180,14 @@ void Application::run(const size_t argc, char** argv)
     if (stringcasecompare(argv[1], "connect") == 0)
     {
         connect();
+        if(4 < argc)
+        {
+            output_file_tmp.open(argv[4]);
+            if (output_file_tmp.is_open())
+            {
+                FffProcessor::getInstance()->setTargetFileStream(&output_file_tmp);
+            }
+        }
     }
     else
 #endif //ARCUS
