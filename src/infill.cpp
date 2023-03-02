@@ -42,11 +42,12 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh, const int layerNr)
 {
     coord_t outline_offset_raw = outline_offset;
     outline_offset -= wall_line_count * infill_line_width; // account for extra walls
-
+    if(layerNr % 2 == 0) switch_infill_line_dir = true;
+    else switch_infill_line_dir = false;
     if (infill_multiplier > 1)
     {
         bool zig_zaggify_real = zig_zaggify;
@@ -716,7 +717,27 @@ void Infill::connectLines(Polygons& result_lines)
                     return vSize(left_hand_point - to_point) < vSize(right_hand_point - to_point);
                 }
             };
-            std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before, polygon_index, vertex_index));
+
+            struct CompareByDistanceSwitch
+            {
+                CompareByDistanceSwitch(Point to_point, size_t polygon_index, size_t vertex_index): to_point(to_point), polygon_index(polygon_index), vertex_index(vertex_index) {};
+                Point to_point; //The distance to this point is compared.
+                size_t polygon_index; //The polygon which the vertex_index belongs to.
+                size_t vertex_index; //The vertex indicating a line segment. This determines which endpoint of each line should be used.
+                inline bool operator ()(InfillLineSegment*& left_hand_side, InfillLineSegment*& right_hand_side) const
+                {
+                    //Find the two endpoints that are relevant.
+                    const Point left_hand_point = (left_hand_side->end_segment == vertex_index && left_hand_side->end_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
+                    const Point right_hand_point = (right_hand_side->end_segment == vertex_index && right_hand_side->end_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
+                    return vSize(left_hand_point - to_point) > vSize(right_hand_point - to_point);
+                }
+            };
+            if(switch_infill_line_dir)
+            {
+                std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistanceSwitch(vertex_before, polygon_index, vertex_index));
+            } else {
+                std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before, polygon_index, vertex_index));
+            }
 
             for (InfillLineSegment* crossing : crossings_on_line[polygon_index][vertex_index])
             {
@@ -738,13 +759,13 @@ void Infill::connectLines(Polygons& result_lines)
 
                     //Join two infill lines together with a connecting line.
                     //Here the InfillLineSegments function as a linked list, so that they can easily be joined.
-                    const Point previous_point = (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index) ? previous_segment->start : previous_segment->end;
-                    const Point next_point = (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index) ? crossing->start : crossing->end;
+                    const Point previous_point = (switch_infill_line_dir?(previous_segment->end_segment == vertex_index && previous_segment->end_polygon == polygon_index):(previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)) ? previous_segment->start : previous_segment->end;
+                    const Point next_point = (switch_infill_line_dir?(crossing->end_segment == vertex_index && crossing->end_polygon == polygon_index):(crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index)) ? crossing->start : crossing->end;
                     InfillLineSegment* new_segment;
                     // If the segment is zero length, we avoid creating it but still want to connect the crossing with the previous segment
                     if (previous_point == next_point)
                     {
-                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
+                        if (switch_infill_line_dir?(previous_segment->end_segment == vertex_index && previous_segment->end_polygon == polygon_index):(previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index))
                         {
                             previous_segment->previous = crossing;
                         }
@@ -758,7 +779,7 @@ void Infill::connectLines(Polygons& result_lines)
                     {
                         new_segment = new InfillLineSegment(previous_point, vertex_index, polygon_index, next_point, vertex_index, polygon_index); //A connecting line between them.
                         new_segment->previous = previous_segment;
-                        if (previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index)
+                        if (switch_infill_line_dir?(previous_segment->end_segment == vertex_index && previous_segment->end_polygon == polygon_index):(previous_segment->start_segment == vertex_index && previous_segment->start_polygon == polygon_index))
                         {
                             previous_segment->previous = new_segment;
                         }
@@ -769,7 +790,7 @@ void Infill::connectLines(Polygons& result_lines)
                         new_segment->next = crossing;
                     }
 
-                    if (crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index)
+                    if (switch_infill_line_dir?(crossing->end_segment == vertex_index && crossing->end_polygon == polygon_index):(crossing->start_segment == vertex_index && crossing->start_polygon == polygon_index))
                     {
                         crossing->previous = new_segment;
                     }
@@ -787,9 +808,9 @@ void Infill::connectLines(Polygons& result_lines)
             if (previous_crossing)
             {
                 InfillLineSegment* new_segment;
-                if (vertex_index == previous_segment->start_segment && polygon_index == previous_segment->start_polygon)
+                if (switch_infill_line_dir?(vertex_index == previous_segment->end_segment && polygon_index == previous_segment->end_polygon):(vertex_index == previous_segment->start_segment && polygon_index == previous_segment->start_polygon))
                 {
-                    if (previous_segment->start == vertex_after)
+                    if (switch_infill_line_dir?(previous_segment->start != vertex_after):(previous_segment->start == vertex_after))
                     {
                         //Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
                         previous_segment = nullptr;
@@ -805,7 +826,7 @@ void Infill::connectLines(Polygons& result_lines)
                 }
                 else
                 {
-                    if (previous_segment->end == vertex_after)
+                    if (switch_infill_line_dir?(previous_segment->end != vertex_after):(previous_segment->end == vertex_after))
                     {
                         //Edge case when an infill line ends directly on top of vertex_after: We skip the extra connecting line segment, as that would be 0-length.
                         previous_segment = nullptr;

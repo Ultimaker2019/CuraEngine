@@ -1457,7 +1457,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
                 , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
                 , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-            infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+            infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh, gcode_layer.getLayerNr());
         }
         if (!infill_lines.empty() || !infill_polygons.empty())
         {
@@ -1474,7 +1474,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             if (mesh.settings.get<bool>("infill_randomize_start_location"))
             {
                 srand(gcode_layer.getLayerNr());
-                near_start_location = infill_lines[rand() % infill_lines.size()][0];
+                near_start_location = infill_lines[0][0];
             }
             const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
@@ -1684,7 +1684,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                             , skip_some_zags
                             , zag_skip_count
                             , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+                        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh, gcode_layer.getLayerNr());
 
                         // normal processing for the infill that isn't below skin
                         in_outline = infill_not_below_skin;
@@ -1711,7 +1711,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             , /*bool skip_some_zags =*/ false
             , /*int zag_skip_count =*/ 0
             , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh, gcode_layer.getLayerNr());
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)
     {
@@ -1724,7 +1724,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             srand(gcode_layer.getLayerNr());
             if(!infill_lines.empty())
             {
-                near_start_location = infill_lines[rand() % infill_lines.size()][0];
+                near_start_location = infill_lines[0][0];
             }
             else
             {
