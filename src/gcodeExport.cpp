@@ -755,6 +755,7 @@ void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t&
 
     *output_stream << "G0";
     *output_file_stream << "G0";
+    is_move_xy_then_z = true;
     writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
 }
 
@@ -828,6 +829,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
 
     *output_stream << "G1";
     *output_file_stream << "G1";
+    is_move_xy_then_z = false;
     writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
@@ -845,7 +847,7 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const int x, const int y, co
 
     *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
     *output_file_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
-    if (z != currentPosition.z)
+    if (!is_move_xy_then_z && z != currentPosition.z)
     {
         *output_stream << " Z" << MMtoStream{z};
         *output_file_stream << " Z" << MMtoStream{z};
@@ -859,6 +861,21 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const int x, const int y, co
     *output_stream << new_line;
     *output_file_stream << new_line;
     
+    if (is_move_xy_then_z && z != currentPosition.z)
+    {
+        *output_stream << "G1";
+        *output_file_stream << "G1";
+
+        *output_stream << " F" << PrecisionedDouble{1, speed * 60};
+        *output_file_stream << " F" << PrecisionedDouble{1, speed * 60};
+
+        *output_stream << " Z" << MMtoStream{z};
+        *output_file_stream << " Z" << MMtoStream{z};
+
+        *output_stream << new_line;
+        *output_file_stream << new_line;
+    }
+
     currentPosition = Point3(x, y, z);
     current_e_value = e;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);

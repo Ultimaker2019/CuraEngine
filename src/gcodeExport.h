@@ -110,6 +110,7 @@ private:
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
     std::string machine_buildplate_type;
+    bool is_move_xy_then_z;
 
     std::ostream* output_stream;
     std::ostream* output_file_stream;
