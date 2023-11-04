@@ -3,20 +3,20 @@
 
 #include "SkeletalTrapezoidation.h"
 
-#include "BoostInterface.hpp"
-#include "settings/types/Ratio.h"
-#include "utils/VoronoiUtils.h"
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
-
-#include <scripta/logger.h>
-#include <spdlog/spdlog.h>
-
 #include <functional>
 #include <queue>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
+
+#include <scripta/logger.h>
+#include <spdlog/spdlog.h>
+
+#include "BoostInterface.hpp"
+#include "settings/types/Ratio.h"
+#include "utils/VoronoiUtils.h"
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX \
     1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing

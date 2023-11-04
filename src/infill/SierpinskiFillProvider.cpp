@@ -1,10 +1,11 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "infill/SierpinskiFillProvider.h"
+
 #include <spdlog/spdlog.h>
 
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/math.h"
