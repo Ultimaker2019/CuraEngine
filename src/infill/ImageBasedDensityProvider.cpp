@@ -3,12 +3,14 @@
 
 #define STBI_FAILURE_USERMSG // enable user friendly bug messages for STB lib
 #define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
-#include <spdlog/spdlog.h>
-#include <stb_image.h>
-
 #include "infill/ImageBasedDensityProvider.h"
+
 #include "infill/SierpinskiFill.h"
 #include "utils/AABB3D.h"
+
+#include <spdlog/spdlog.h>
+
+#include <stb_image.h>
 
 namespace cura
 {

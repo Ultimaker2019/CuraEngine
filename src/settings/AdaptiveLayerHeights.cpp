@@ -1,21 +1,23 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <algorithm>
-#include <cmath>
-#include <limits>
+#include "settings/AdaptiveLayerHeights.h"
 
 #include "Application.h"
 #include "Slice.h"
-#include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h"
 #include "utils/floatpoint.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 namespace cura
 {
 
-AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height{ layer_height }
+AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
+    : layer_height{ layer_height }
 {
 }
 
