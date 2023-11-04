@@ -14,9 +14,9 @@
 #include <unistd.h>
 #endif
 
-#include <spdlog/spdlog.h>
-
 #include "utils/socket.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {

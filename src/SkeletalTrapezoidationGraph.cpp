@@ -3,17 +3,18 @@
 
 #include "SkeletalTrapezoidationGraph.h"
 
-#include <unordered_map>
+#include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 #include <spdlog/spdlog.h>
 
-#include "utils/linearAlg2D.h"
-#include "utils/macros.h"
+#include <unordered_map>
 
 namespace cura
 {
 
-STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data) : HalfEdge(data)
+STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data)
+    : HalfEdge(data)
 {
 }
 
@@ -131,7 +132,8 @@ STHalfEdge* STHalfEdge::getNextUnconnected()
     return result->twin;
 }
 
-STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p) : HalfEdgeNode(data, p)
+STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p)
+    : HalfEdgeNode(data, p)
 {
 }
 
@@ -223,7 +225,10 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         }
     };
 
-    auto should_collapse = [snap_dist](node_t* a, node_t* b) { return shorterThen(a->p - b->p, snap_dist); };
+    auto should_collapse = [snap_dist](node_t* a, node_t* b)
+    {
+        return shorterThen(a->p - b->p, snap_dist);
+    };
 
     for (auto edge_it = edges.begin(); edge_it != edges.end();)
     {
