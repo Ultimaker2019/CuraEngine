@@ -4,11 +4,11 @@
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
+#include <spdlog/spdlog.h>
+
 #include <cstdio> // sprintf
 #include <ctype.h>
 #include <sstream> // ostringstream
-
-#include <spdlog/spdlog.h>
 
 namespace cura
 {
