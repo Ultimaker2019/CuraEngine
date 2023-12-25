@@ -1594,7 +1594,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config);
                 if (path.perform_z_hop)
                 {
-                    if (path_idx != 0 && layer_nr == 0)
+                    if ((path_idx != 0 && layer_nr == 0) || layer_nr > 0)
                     {
                         gcode.writeZhopStart(z_hop_height);
                     }
