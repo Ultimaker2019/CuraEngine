@@ -485,6 +485,14 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
     }
     else if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
+
+        if (scene.current_mesh_group->settings.get<bool>("home_first_then_heat"))
+        {
+            std::ostringstream tmp;
+            tmp << "G28";
+            gcode.writeLine(tmp.str().c_str());
+        }
+
         if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
         {
             std::ostringstream tmp;
