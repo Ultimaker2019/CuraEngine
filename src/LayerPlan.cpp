@@ -102,6 +102,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 {
     size_t current_extruder = start_extruder;
     was_inside = true; // not used, because the first travel move is bogus
+    is_wall_change_direction = false;
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
     {
@@ -906,6 +907,8 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
     Point p0 = wall[start_idx];
 
+    if(is_wall_change_direction)
+    {
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
     {
         const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
@@ -940,6 +943,44 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         }
 
         p0 = p1;
+    }
+    }else
+    {
+    for (unsigned int point_idx = wall.size() - 1; point_idx > 0; point_idx--)
+    {
+        const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+
+        if (!bridge_wall_mask.empty())
+        {
+            computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
+        }
+
+        if (flow >= wall_min_flow)
+        {
+            if (first_line || travel_required)
+            {
+                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                first_line = false;
+                travel_required = false;
+            }
+            if (is_small_feature)
+            {
+                constexpr bool spiralize = false;
+                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+            }
+            else
+            {
+                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            }
+        }
+        else
+        {
+            travel_required = true;
+        }
+
+        p0 = p1;
+    }
     }
 
     if (wall.size() > 2)
@@ -1011,6 +1052,7 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
         addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        is_wall_change_direction = !is_wall_change_direction;
     }
 }
 

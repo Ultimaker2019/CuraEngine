@@ -240,6 +240,7 @@ public:
     coord_t z;
     coord_t final_travel_z;
     bool mode_skip_agressive_merge; //!< Wheter to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
+    bool is_wall_change_direction;
 
 private:
     const LayerIndex layer_nr; //!< The layer number of this layer plan
