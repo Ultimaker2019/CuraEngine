@@ -9,7 +9,7 @@
 
 namespace cura {
 
-void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching)
+void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching, int layer, bool isSpiralizeMode, bool isSingleWall, Polygons prePolygons)
 {
     Polygons openPolygonList;
     
@@ -59,6 +59,9 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
     //Clear the segmentList to save memory, it is no longer needed after this point.
     segmentList.clear();
 
+
+
+    float min_length = 0.02f;
     //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
     //First link up polygon ends that are within 2 microns.
     for(unsigned int i=0;i<openPolygonList.size();i++)
@@ -71,7 +74,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][0];
             int64_t distSquared = vSize2(diff);
 
-            if (distSquared < MM2INT(0.02) * MM2INT(0.02))
+            if (distSquared < MM2INT(min_length) * MM2INT(min_length))
             {
                 if (i == j)
                 {
@@ -296,12 +299,42 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         }
     }
 
+
+    if(isSpiralizeMode)
+    {
+        if(isSingleWall)
+        {
+            //单壁模型，过滤区域小的
+            if(polygonList.size() > 1)
+            {
+                Polygons tmpPolygons;
+                int index = 0;
+                double area = polygonList[0].area();
+                for(unsigned int i=1; i<polygonList.size(); i++)
+                {
+                    if(area < polygonList[i].area()) index = i;
+                }
+                tmpPolygons.add(polygonList[index]);
+                polygonList = tmpPolygons;
+            }
+        } else
+        {
+            //花瓶底部破面临时方案
+            if(prePolygons.size() < 5 && (polygonList.size() > 100 || openPolygons.size() > 100))
+            {
+                polygonList = prePolygons;
+                openPolygons.clear();
+                return;
+            }
+        }
+    }
+
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     optimizePolygons(polygonList);
 }
 
 
-Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching)
+Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching, bool spiralizeMode, int downFixSkinCount)
 {
     modelSize = ov->model->modelSize;
     modelMin = ov->model->vMin;
@@ -361,9 +394,11 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
         }
     }
     
+    Polygons prePolygons;
     for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
     {
-        layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching);
+        layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching, layerNr, spiralizeMode, layerNr >= downFixSkinCount, prePolygons);
+        prePolygons = layers[layerNr].polygonList;
     }
 }
 

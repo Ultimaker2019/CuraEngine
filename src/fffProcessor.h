@@ -213,7 +213,7 @@ private:
         vector<Slicer*> slicerList;
         for(unsigned int volumeIdx=0; volumeIdx < optimizedModel->volumes.size(); volumeIdx++)
         {
-            Slicer* slicer = new Slicer(&optimizedModel->volumes[volumeIdx], config.initialLayerThickness - config.layerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+            Slicer* slicer = new Slicer(&optimizedModel->volumes[volumeIdx], config.initialLayerThickness - config.layerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING, config.spiralizeMode, config.downFixSkinCount);
             slicerList.push_back(slicer);
             for(unsigned int layerNr=0; layerNr<slicer->layers.size(); layerNr++)
             {
@@ -282,7 +282,7 @@ private:
             for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
             {
                 int insetCount = config.insetCount;
-                if (config.spiralizeMode && static_cast<int>(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                if (config.spiralizeMode && static_cast<int>(layerNr) < config.downFixSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                 int extrusionWidth = config.extrusionWidth;
@@ -329,7 +329,22 @@ private:
 
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
-            if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (config.spiralizeMode && static_cast<int>(layerNr) < config.downFixSkinCount)
+            {
+                for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+                {
+                    int extrusionWidth = config.extrusionWidth;
+                    if (layerNr == 0)
+                        extrusionWidth = config.layer0extrusionWidth;
+                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downFixSkinCount, 0, config.infillOverlap);
+                    generateSparse(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downFixSkinCount, 0);
+
+                    SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+                    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+                        sendPolygonsToGui("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
+                }
+            }
+            else if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
                 {
@@ -709,15 +724,26 @@ private:
             {
                 if (config.spiralizeMode)
                 {
-                    if (static_cast<int>(layerNr) >= config.downSkinCount)
+                    if (static_cast<int>(layerNr) >= config.downFixSkinCount)
                         inset0Config.spiralize = true;
-                    if (static_cast<int>(layerNr) == config.downSkinCount && part->insets.size() > 0)
+                    if (static_cast<int>(layerNr) == config.downFixSkinCount && part->insets.size() > 0)
                         gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
                 }
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
                 {
                     if (insetNr == 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                    {
+                        if(config.downFixSkinCount != 0 && static_cast<int>(layerNr) >= config.downFixSkinCount)
+                        {
+                            gcodeLayer.setIsDownFixSkin(true);
+                            gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                            gcodeLayer.setIsDownFixSkin(false);
+                        } else
+                        {
+                            gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                        }
+
+                    }
                     else
                         gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
                 }
@@ -741,7 +767,7 @@ private:
 
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-            if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)
+            if ( (config.spiralizeMode && static_cast<int>(layerNr) < config.downFixSkinCount) || (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount))
                 gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
         }
         gcodeLayer.setCombBoundary(nullptr);

@@ -25,6 +25,7 @@ ConfigSettings::ConfigSettings()
     SETTING(layer0extrusionWidth, 600);
     SETTING(extrusionWidth, 400);
     SETTING(insetCount, 2);
+    SETTING(downFixSkinCount, 6);
     SETTING(downSkinCount, 6);
     SETTING(upSkinCount, 6);
     SETTING(skirtDistance, 6000);

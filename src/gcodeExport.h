@@ -211,6 +211,7 @@ private:
     int retractionMinimalDistance;
     bool forceRetraction;
     bool alwaysRetract;
+    bool isDownFixSkin;
     double extraTime;
     double totalPrintTime;
 private:
@@ -246,6 +247,11 @@ public:
     void setAlwaysRetract(bool alwaysRetract)
     {
         this->alwaysRetract = alwaysRetract;
+    }
+    
+    void setIsDownFixSkin(bool _isDownFixSkin)
+    {
+        this->isDownFixSkin = _isDownFixSkin;
     }
     
     void forceRetract()

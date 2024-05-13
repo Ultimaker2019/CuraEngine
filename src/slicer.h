@@ -46,7 +46,7 @@ public:
     Polygons polygonList;
     Polygons openPolygons;
     
-    void makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching);
+    void makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching, int lar, bool isSpiralizeMode, bool isSingleWall, Polygons preList);
 
 private:
     gapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
@@ -144,7 +144,7 @@ public:
     std::vector<SlicerLayer> layers;
     Point3 modelSize, modelMin;
     
-    Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching);
+    Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching, bool spiralizeMode, int downFixSkinCount);
     
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
     {

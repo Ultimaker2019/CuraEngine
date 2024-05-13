@@ -138,6 +138,7 @@ public:
     int extrusionWidth;
     int insetCount;
     int downSkinCount;
+    int downFixSkinCount;
     int upSkinCount;
     int skirtDistance;
     int skirtLineCount;

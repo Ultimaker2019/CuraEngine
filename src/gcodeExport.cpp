@@ -873,6 +873,7 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMi
     totalPrintTime = 0.0;
     forceRetraction = false;
     alwaysRetract = false;
+    isDownFixSkin = false;
     currentExtruder = gcode.getExtruderNr();
     this->retractionMinimalDistance = retractionMinimalDistance;
 }
@@ -943,6 +944,10 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
 void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config)
 {
     Point p0 = polygon[startIdx];
+    if(isDownFixSkin)
+    {
+       addExtrusionMove(polygon[startIdx], config);
+    } else {
     if(config != nullptr && strcmp(config->name,"WALL-OUTER") == 0)
     {
         if (!shorterThen(lastPosition - p0, retractionMinimalDistance))
@@ -956,6 +961,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     {
         addTravel(p0);
     }
+    }
     for(unsigned int i=1; i<polygon.size(); i++)
     {
         Point p1 = polygon[(startIdx + i) % polygon.size()];
@@ -964,6 +970,10 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
     if (polygon.size() > 2)
     {
+        if(isDownFixSkin)
+        {
+            addExtrusionMove(polygon[startIdx], config);
+        } else {
         if(config != nullptr && (strcmp(config->name,"WALL-OUTER") == 0 || strcmp(config->name,"WALL-INNER") == 0))
         {
             int distance = sqrt((p0.X - polygon[startIdx].X)*(p0.X - polygon[startIdx].X)+(p0.Y - polygon[startIdx].Y)*(p0.Y - polygon[startIdx].Y));
@@ -976,6 +986,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
         }else
         {
             addExtrusionMove(polygon[startIdx], config);
+        }
         }
     }
 }
@@ -1133,8 +1144,8 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
             float totalLength = 0.0;
             int z = gcode.getPositionZ();
-            Point p0 = gcode.getPositionXY();
-            for(unsigned int i=0; i<path->points.size(); i++)
+            Point p0 = path->points[0];
+            for(unsigned int i=1; i<path->points.size(); i++)
             {
                 Point p1 = path->points[i];
                 totalLength += vSizeMM(p0 - p1);
@@ -1142,8 +1153,8 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             }
             
             float length = 0.0;
-            p0 = gcode.getPositionXY();
-            for(unsigned int i=0; i<path->points.size(); i++)
+            p0 = path->points[0];
+            for(unsigned int i=1; i<path->points.size(); i++)
             {
                 Point p1 = path->points[i];
                 length += vSizeMM(p0 - p1);
