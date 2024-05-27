@@ -906,81 +906,121 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     bool first_line = true;
 
     Point p0 = wall[start_idx];
+    int p0s_index = 0;
+    std::vector<Point> p0s;
+    p0s.push_back(p0);
 
     if(is_wall_change_direction)
     {
-    for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
-    {
-        const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
-        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-
-        if (!bridge_wall_mask.empty())
+        for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
         {
-            computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
-        }
+            const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
+            const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
 
-        if (flow >= wall_min_flow)
-        {
-            if (first_line || travel_required)
+            if (!bridge_wall_mask.empty())
             {
-                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
-                first_line = false;
-                travel_required = false;
+                computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
             }
-            if (is_small_feature)
+
+            if (flow >= wall_min_flow)
             {
-                constexpr bool spiralize = false;
-                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+                if (first_line || travel_required)
+                {
+                    addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                    first_line = false;
+                    travel_required = false;
+                }
+                if (is_small_feature)
+                {
+                    constexpr bool spiralize = false;
+                    addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+                }
+                else
+                {
+                    addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                }
             }
             else
             {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                travel_required = true;
+            }
+            if(p0s_index < 5)
+            {
+                if(vSize(p1 - p0) < 1000)
+                {
+                    p0s.push_back(p1);
+                    p0s_index++;
+                } else {
+                    p0s_index = 5;
+                }
+            }
+            p0 = p1;
+
+            if(point_idx == wall.size()-1)
+            {
+                for(Point point: p0s)
+                {
+                    addWallLine(point, p0, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                    p0 = point;
+                }
             }
         }
-        else
-        {
-            travel_required = true;
-        }
-
-        p0 = p1;
-    }
     }else
     {
-    for (unsigned int point_idx = wall.size() - 1; point_idx > 0; point_idx--)
-    {
-        const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
-        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-
-        if (!bridge_wall_mask.empty())
+        for (unsigned int point_idx = wall.size() - 1; point_idx > 0; point_idx--)
         {
-            computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
-        }
+            const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
+            const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
 
-        if (flow >= wall_min_flow)
-        {
-            if (first_line || travel_required)
+            if (!bridge_wall_mask.empty())
             {
-                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
-                first_line = false;
-                travel_required = false;
+                computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
             }
-            if (is_small_feature)
+
+            if (flow >= wall_min_flow)
             {
-                constexpr bool spiralize = false;
-                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+                if (first_line || travel_required)
+                {
+                    addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                    first_line = false;
+                    travel_required = false;
+                }
+                if (is_small_feature)
+                {
+                    constexpr bool spiralize = false;
+                    addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+                }
+                else
+                {
+                    addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                }
             }
             else
             {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                travel_required = true;
+            }
+            if(p0s_index < 5)
+            {
+                //logAlways("vSize(p1 - p0) == %i\n", vSize(p1 - p0));
+                if(vSize(p1 - p0) < 1000)
+                {
+                    p0s.push_back(p1);
+                    p0s_index++;
+                } else {
+                    p0s_index = 5;
+                }
+            }
+            p0 = p1;
+            if(point_idx == 1)
+            {
+                for(Point point: p0s)
+                {
+                    addWallLine(point, p0, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                    p0 = point;
+                }
             }
         }
-        else
-        {
-            travel_required = true;
-        }
 
-        p0 = p1;
-    }
     }
 
     if (wall.size() > 2)
@@ -1006,7 +1046,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             }
             else
             {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                if(is_wall_change_direction)
+                {
+                    if(p0s_index != 5)
+                        addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                } 
+                else
+                {
+                    addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                }
             }
 
             if (wall_0_wipe_dist > 0)
@@ -1638,6 +1686,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     if ((path_idx != 0 && layer_nr == 0) || layer_nr > 0)
                     {
+                        if(extruder.settings.get<bool>("retraction_delay_before_hop"))
+                        {
+                            gcode.writeDelayBeforeZhopStart(extruder.settings.get<int>("retraction_delay_time_before_hop"));
+                        }
                         gcode.writeZhopStart(z_hop_height);
                     }
                     z_hop_height = retraction_config.zHop; // back to normal z hop
