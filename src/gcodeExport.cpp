@@ -1021,6 +1021,11 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     extr_attr.prime_volume += config.prime_volume;
 }
 
+void GCodeExport::writeDelayBeforeZhopStart(const int delay_time_ms)
+{
+    *output_stream << "M2005 S" << MMtoStream{delay_time_ms*1000} << new_line;
+}
+
 void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/)
 {
     if (hop_height > 0)

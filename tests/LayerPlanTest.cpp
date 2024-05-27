@@ -150,6 +150,8 @@ public:
         settings->add("retraction_enable", "false");
         settings->add("retraction_extra_prime_amount", "1");
         settings->add("retraction_extrusion_window", "10");
+        settings->add("retraction_delay_before_hop", "false");
+        settings->add("retraction_delay_time_before_hop", "1000");
         settings->add("retraction_hop", "1.5");
         settings->add("retraction_hop_enabled", "false");
         settings->add("retraction_hop_only_when_collides", "false");

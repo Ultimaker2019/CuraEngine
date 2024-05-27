@@ -431,6 +431,7 @@ public:
     void writeUnretractionAndPrime();
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
+    void writeDelayBeforeZhopStart(const int delay_time_ms);
     /*!
      * Start a z hop with the given \p hop_height.
      * 
