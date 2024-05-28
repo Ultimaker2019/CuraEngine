@@ -615,7 +615,7 @@ void Wireframe2gcode::processStartingCode()
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (scene_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (scene_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
-        gcode.writeLine(tmp.str().c_str());
+        gcode.writeLine(tmp.str().c_str(), tmp.str().length());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains

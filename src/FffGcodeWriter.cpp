@@ -490,14 +490,14 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
         {
             std::ostringstream tmp;
             tmp << "G28";
-            gcode.writeLine(tmp.str().c_str());
+            gcode.writeLine(tmp.str().c_str(), tmp.str().length());
         }
 
         if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
-            gcode.writeLine(tmp.str().c_str());
+            gcode.writeLine(tmp.str().c_str(), tmp.str().length());
         }
 
         if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
@@ -572,7 +572,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     {
         std::ostringstream tmp;
         tmp << "T" << start_extruder_nr;
-        gcode.writeLine(tmp.str().c_str());
+        gcode.writeLine(tmp.str().c_str(), tmp.str().length());
     }
     else
     {
@@ -596,7 +596,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
-        gcode.writeLine(tmp.str().c_str());
+        gcode.writeLine(tmp.str().c_str(), tmp.str().length());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains

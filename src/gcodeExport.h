@@ -114,6 +114,7 @@ private:
 
     std::ostream* output_stream;
     std::ostream* output_file_stream;
+    std::ostringstream temp_stream;
     std::string new_line;
 
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
@@ -319,7 +320,7 @@ public:
      */
     void writeLayerCountComment(const size_t layer_count);
     
-    void writeLine(const char* line);
+    void writeLine(const char* line, const size_t length);
     
     /*!
      * Reset the current_e_value to prevent too high E values.
