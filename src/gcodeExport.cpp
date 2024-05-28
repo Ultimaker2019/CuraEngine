@@ -612,19 +612,37 @@ void GCodeExport::writeLine(const char* line, const size_t length)
     temp_stream.clear();
 }
 
+void GCodeExport::writeCheckSumMode(bool is_checksum_mode)
+{
+    if(is_checksum_mode)
+    {
+        temp_stream << ";Force Re-Check is on";
+        writeCode(temp_stream.str().c_str());
+        temp_stream << "M305 S1";
+        writeLine(temp_stream.str().c_str(), temp_stream.str().length());
+    }
+    else
+    {
+        temp_stream << ";Force Re-Check is off";
+        writeCode(temp_stream.str().c_str());
+        temp_stream << "M305 S0";
+        writeLine(temp_stream.str().c_str(), temp_stream.str().length());
+    }
+}
+
 void GCodeExport::writeExtrusionMode(bool set_relative_extrusion_mode)
 {
     if (set_relative_extrusion_mode)
     {
         temp_stream << ";relative extrusion mode";
-        writeLine(temp_stream.str().c_str(), temp_stream.str().length());
+        writeCode(temp_stream.str().c_str());
         temp_stream << "M83";
         writeLine(temp_stream.str().c_str(), temp_stream.str().length());
     }
     else
     {
         temp_stream << ";absolute extrusion mode";
-        writeLine(temp_stream.str().c_str(), temp_stream.str().length());
+        writeCode(temp_stream.str().c_str());
         temp_stream << "M82";
         writeLine(temp_stream.str().c_str(), temp_stream.str().length());
     }

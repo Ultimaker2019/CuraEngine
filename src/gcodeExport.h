@@ -296,6 +296,8 @@ public:
     void writeComment(const std::string& comment);
     void writeTypeComment(const PrintFeatureType& type);
 
+    void writeCheckSumMode(bool is_checksum_mode);
+
     /*!
      * Write an M82 (absolute) or M83 (relative)
      *
