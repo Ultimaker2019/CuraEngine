@@ -910,7 +910,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     std::vector<Point> p0s;
     p0s.push_back(p0);
 
-    if(is_wall_change_direction)
+    //if(is_wall_change_direction)
     {
         for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
         {
@@ -944,7 +944,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             {
                 travel_required = true;
             }
-            if(p0s_index < 5)
+            /*if(p0s_index < 5)
             {
                 if(vSize(p1 - p0) < 1000)
                 {
@@ -953,19 +953,19 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                 } else {
                     p0s_index = 5;
                 }
-            }
+            }*/
             p0 = p1;
 
-            if(point_idx == wall.size()-1)
+            /*if(point_idx == wall.size()-1)
             {
                 for(Point point: p0s)
                 {
                     addWallLine(point, p0, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
                     p0 = point;
                 }
-            }
+            }*/
         }
-    }else
+    }/*else
     {
         for (unsigned int point_idx = wall.size() - 1; point_idx > 0; point_idx--)
         {
@@ -1021,7 +1021,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             }
         }
 
-    }
+    }*/
 
     if (wall.size() > 2)
     {
@@ -1046,12 +1046,12 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             }
             else
             {
-                if(is_wall_change_direction)
+                /*if(is_wall_change_direction)
                 {
                     if(p0s_index != 5)
                         addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
                 } 
-                else
+                else*/
                 {
                     addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
                 }
