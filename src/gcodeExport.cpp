@@ -595,18 +595,26 @@ void GCodeExport::writeLayerCountComment(const size_t layer_count)
 void GCodeExport::writeLine(const char* line, const size_t length)
 {
     unsigned int checksum = 0;
-
-    for(size_t i = 0; i < length; i++)
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
+    if (extruder_settings.get<bool>("enable_checksum"))
     {
-        if(line[i] == '\0')
+        for(size_t i = 0; i < length; i++)
         {
-            break;
+            if(line[i] == '\0')
+            {
+                break;
+            }
+            checksum ^= line[i];
         }
-        checksum ^= line[i];
-    }
 
-    *output_stream << line << " $" << int(checksum) << new_line;
-    *output_file_stream << line << " $" << int(checksum) << new_line;
+        *output_stream << line << " $" << int(checksum) << new_line;
+        *output_file_stream << line << " $" << int(checksum) << new_line;
+    }
+    else
+    {
+        *output_stream << line << new_line;
+        *output_file_stream << line << new_line;
+    }
     //clear buffer
     temp_stream.str("");
     temp_stream.clear();
