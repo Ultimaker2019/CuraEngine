@@ -97,11 +97,18 @@ public:
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
     LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary; //!< travel moves that cross this boundary are penalised so they are less likely to be chosen
+    bool is_single_line_test;
 
     LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
     {
         this->startPoint = startPoint;
         this->combing_boundary = (combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr;
+        is_single_line_test = false;
+    }
+
+    void setSingleLineTest(bool value)
+    {
+        is_single_line_test = value;
     }
 
     void addPolygon(PolygonRef polygon)

@@ -114,10 +114,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 
 
-    const std::function<LayerPlan* (int)>& produce_item =
-        [&storage, total_layers, this](int layer_nr)
+    const std::function<LayerPlan* (int, Point *)>& produce_item =
+        [&storage, total_layers, this](int layer_nr, Point *p)
         {
-            LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
+            LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers, p);
             return &gcode_layer;
         };
     const std::function<void (LayerPlan*)>& consume_item =
@@ -126,6 +126,23 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
             layer_plan_buffer.handle(*gcode_layer, gcode);
         };
+    if (scene.current_mesh_group->settings.get<bool>("enable_single_line_test"))
+    {
+    const unsigned int max_task_count = 1;
+    GcodeLayerThreader<LayerPlan> threader(
+        process_layer_starting_layer_nr
+        , static_cast<int>(total_layers)
+        , produce_item
+        , consume_item
+        , max_task_count
+    );
+
+    // process all layers, process buffer for preheating and minimal layer time etc, write layers to gcode:
+    threader.run();
+
+    }
+    else
+    {
     const unsigned int max_task_count = OMP_MAX_ACTIVE_LAYERS_PROCESSED;
     GcodeLayerThreader<LayerPlan> threader(
         process_layer_starting_layer_nr
@@ -137,6 +154,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     // process all layers, process buffer for preheating and minimal layer time etc, write layers to gcode:
     threader.run();
+    }
 
     layer_plan_buffer.flush();
 
@@ -835,7 +853,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     }
 }
 
-LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
+LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers, Point *layer_start_p) const
 {
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
 
@@ -920,7 +938,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     const coord_t first_outer_wall_line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, comb_offset_from_outlines, first_outer_wall_line_width, avoid_distance);
-
+    if (mesh_group_settings.get<bool>("enable_single_line_test")) gcode_layer.setLastPlannedPosition(*layer_start_p);
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
         int extruder_nr = gcode_layer.getExtruder();
@@ -983,6 +1001,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         gcode_layer.optimizePaths(gcode.getPositionXY());
     }
 
+    if (mesh_group_settings.get<bool>("enable_single_line_test")) *layer_start_p = gcode_layer.getLastPlannedPositionOrStartingPosition();
     return gcode_layer;
 }
 
@@ -1991,6 +2010,50 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         gcode_layer.setIsInside(true); // going to print stuff inside print object
                         ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
                         Polygons outer_wall = part.insets[0];
+
+                        if (mesh.settings.get<bool>("enable_single_line_test"))
+                        {
+                            if(outer_wall.size() > 1)
+                            {
+                                for(int i = outer_wall.size()-1; i >0 ;i--) outer_wall.remove(i);
+                                gcode_layer.is_open_poly_line = false;
+                            }
+                            else
+                            {
+                                Polygons outer_wall2 = outer_wall;
+                                outer_wall2[0].scale(-mesh_config.inset0_config.getLineWidth()*2);
+                                PolygonRef poly = outer_wall2.newPoly();
+                                for(int i = 0; i < outer_wall[0].size(); i++)
+                                {
+                                    if(!outer_wall2[0].inside(outer_wall[0][i])) poly.add(outer_wall[0][i]);
+                                }
+
+                                if(poly.size() == outer_wall2[0].size())
+                                {
+                                    outer_wall2.clear();
+                                    gcode_layer.is_open_poly_line = false;
+                                } else
+                                {
+                                    outer_wall2.clear();
+                                    outer_wall2.add(poly);
+                                    outer_wall2 = outer_wall.offset(mesh_config.inset0_config.getLineWidth()).intersectionPolyLines(outer_wall2);
+
+                                    if(outer_wall2.size() == 2)
+                                    {
+                                        for(int i = 0; i < outer_wall2[0].size(); i++)
+                                        {
+                                            outer_wall2[1].add(outer_wall2[0][i]);
+                                        }
+                                    }
+
+                                    outer_wall.clear();
+                                    outer_wall.add(outer_wall2[1]);
+                                    outer_wall2.clear();
+
+                                    gcode_layer.is_open_poly_line = true;
+                                }
+                            }
+                        }
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
@@ -2000,6 +2063,10 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         {
                             WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
                             gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
+                        }
+                        if (mesh.settings.get<bool>("enable_single_line_test"))
+                        {
+                            gcode_layer.is_open_poly_line = false;
                         }
                     }
                 }

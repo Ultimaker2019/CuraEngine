@@ -241,6 +241,7 @@ public:
     coord_t final_travel_z;
     bool mode_skip_agressive_merge; //!< Wheter to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
     bool is_wall_change_direction;
+    bool is_open_poly_line;
 
 private:
     const LayerIndex layer_nr; //!< The layer number of this layer plan
@@ -352,6 +353,7 @@ public:
         return layer_nr;
     }
 
+    void setLastPlannedPosition(Point p);
     /*!
      * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
      * 

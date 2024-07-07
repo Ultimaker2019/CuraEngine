@@ -256,6 +256,22 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 best_point_dist = dist;
             }
         }
+        if(is_single_line_test && polygons.size() == 1)
+        {
+            int poly_size = poly.size();
+            if(best_point_idx != 0 && best_point_idx != poly_size - 1)
+            {
+                float dist1 = vSize2f(startPoint - poly[0]);
+                float dist2 = vSize2f(startPoint - poly[poly_size - 1]);
+                if(dist1 >= dist2)
+                {
+                    best_point_idx = poly_size - 1;
+                } else
+                {
+                    best_point_idx = 0;
+                }
+            }
+        } 
         polyStart.push_back(best_point_idx);
 
         assert(poly.size() == 2);
@@ -331,6 +347,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
+        if(is_single_line_test) break;
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
@@ -517,7 +534,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         {
             best = poly_idx;
             best_score = score;
-            polyStart[poly_idx] = 0;
+            if(!is_single_line_test) polyStart[poly_idx] = 0;
         }
     }
     if (just_point != 0)
@@ -534,7 +551,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         {
             best = poly_idx;
             best_score = score;
-            polyStart[poly_idx] = 1;
+            if(!is_single_line_test) polyStart[poly_idx] = 1;
         }
     }
 }

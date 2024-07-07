@@ -41,7 +41,7 @@ public:
     GcodeLayerThreader(
         int start_item_argument_index,
         int end_item_argument_index,
-        const std::function<T* (int)>& produce_item,
+        const std::function<T* (int, Point *)>& produce_item,
         const std::function<void (T*)>& consume_item,
         const unsigned int max_task_count
     );
@@ -56,7 +56,7 @@ private:
      * 
      * \param item_argument_index The parameter with which to call \ref GcodeLayerThreader::produce_item
      */
-    void produce(int item_argument_index);
+    void produce(int item_argument_index, Point *p);
 
     /*!
      * Consume an item from \ref GcodeLayerThreader::produced
@@ -85,7 +85,7 @@ private:
 
     const int max_task_count; //!< The maximum amount of items active in the system
 
-    const std::function<T* (int)>& produce_item; //!< The function to produce an item
+    const std::function<T* (int, Point *)>& produce_item; //!< The function to produce an item
     const std::function<void (T*)>& consume_item; //!< The function to consume an item
 
     // variables which change throughout the computation of the algorithm
@@ -98,14 +98,14 @@ private:
 
     // statistics
     int active_task_count = 0; //!< Number of items active in this system.
-
+    Point p;
 };
 
 template <typename T>
 GcodeLayerThreader<T>::GcodeLayerThreader(
     int start_item_argument_index,
     int end_item_argument_index,
-    const std::function<T* (int)>& produce_item,
+    const std::function<T* (int, Point *)>& produce_item,
     const std::function<void (T*)>& consume_item,
     const unsigned int max_task_count
 )
@@ -141,9 +141,9 @@ void GcodeLayerThreader<T>::run()
 }
 
 template <typename T>
-void GcodeLayerThreader<T>::produce(int item_argument_index)
+void GcodeLayerThreader<T>::produce(int item_argument_index, Point *p)
 {
-    T* produced_item = produce_item(item_argument_index);
+    T* produced_item = produce_item(item_argument_index, p);
     int item_idx = item_argument_index - start_item_argument_index;
     #pragma omp critical
     {
@@ -208,7 +208,7 @@ void GcodeLayerThreader<T>::act()
         }
         if (item_argument_index && *item_argument_index < end_item_argument_index)
         {
-            produce(*item_argument_index);
+            produce(*item_argument_index, &p);
             return;
         }
     }

@@ -446,6 +446,21 @@ public:
         }
     }
 
+    void scale(float offset)
+    {
+        if(fabs(offset) <= 1e-6) return;
+        Point p = (*path)[0];
+        float factor = 1 - sqrt((offset*offset)/(p.X * p.X + p.Y * p.Y)) ;
+        Point p0 = centerOfMass();
+        for (Point& p : *this)
+        {
+            p.X = p.X * factor;
+            p.Y = p.Y * factor;
+        }
+        Point p1 = centerOfMass();
+        translate(p0 - p1);
+    }
+
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
      * 
