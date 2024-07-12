@@ -938,7 +938,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     const coord_t first_outer_wall_line_width = scene.extruders[extruder_order.front()].settings.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_thickness, extruder_order.front(), fan_speed_layer_time_settings_per_extruder, comb_offset_from_outlines, first_outer_wall_line_width, avoid_distance);
-    if (mesh_group_settings.get<bool>("enable_single_line_test")) gcode_layer.setLastPlannedPosition(*layer_start_p);
+    //if (mesh_group_settings.get<bool>("enable_single_line_test")) gcode_layer.setLastPlannedPosition(*layer_start_p);
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
         int extruder_nr = gcode_layer.getExtruder();
@@ -1001,7 +1001,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         gcode_layer.optimizePaths(gcode.getPositionXY());
     }
 
-    if (mesh_group_settings.get<bool>("enable_single_line_test")) *layer_start_p = gcode_layer.getLastPlannedPositionOrStartingPosition();
+    //if (mesh_group_settings.get<bool>("enable_single_line_test")) *layer_start_p = gcode_layer.getLastPlannedPositionOrStartingPosition();
     return gcode_layer;
 }
 
@@ -1982,7 +1982,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
             }
         }
-        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
+        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part) && !mesh.settings.get<bool>("enable_single_line_test"))
         {
             InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
             return ioo.processInsetsWithOptimizedOrdering();
@@ -2020,35 +2020,66 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                             }
                             else
                             {
+                                //偏移多边形，获取外部线轮廓
                                 Polygons outer_wall2 = outer_wall;
-                                outer_wall2[0].scale(-mesh_config.inset0_config.getLineWidth()*2);
-                                PolygonRef poly = outer_wall2.newPoly();
-                                for(int i = 0; i < outer_wall[0].size(); i++)
+                                Polygons outer_wall3;
+
+                                outer_wall2[0].scale(-200);
+                                PolygonRef poly = outer_wall3.newPoly();
+                                for(size_t i = 0; i < outer_wall[0].size(); i++)
                                 {
                                     if(!outer_wall2[0].inside(outer_wall[0][i])) poly.add(outer_wall[0][i]);
                                 }
 
-                                if(poly.size() == outer_wall2[0].size())
+                                if(poly.size() == outer_wall2[0].size()) 
                                 {
                                     outer_wall2.clear();
                                     gcode_layer.is_open_poly_line = false;
                                 } else
                                 {
                                     outer_wall2.clear();
-                                    outer_wall2.add(poly);
-                                    outer_wall2 = outer_wall.offset(mesh_config.inset0_config.getLineWidth()).intersectionPolyLines(outer_wall2);
-
-                                    if(outer_wall2.size() == 2)
+                                    Point p00 = poly[0];
+                                    for(size_t i = 1; i < poly.size(); i++)
                                     {
-                                        for(int i = 0; i < outer_wall2[0].size(); i++)
+                                        outer_wall2.addLine(p00,poly[i]);
+                                        p00 = poly[i];
+                                    }
+                                    outer_wall2.addLine(poly[poly.size()-1],poly[0]);
+                                    outer_wall3 = outer_wall2;
+                                    outer_wall2 = outer_wall.offset(200).intersectionPolyLines(outer_wall2);
+
+                                    int index = -1;
+                                    for(size_t i = 0; i < outer_wall3.size(); i++)
+                                    {
+                                        bool is_exist = false;
+                                        ConstPolygonRef poly0 = outer_wall3[i];
+                                        for(size_t j = 0; j < outer_wall2.size(); j++)
                                         {
-                                            outer_wall2[1].add(outer_wall2[0][i]);
+                                            ConstPolygonRef poly1 = outer_wall2[j];
+                                            if((poly0[0] == poly1[0] && poly0[1] == poly1[1]) || (poly0[0] == poly1[1] && poly0[1] == poly1[0])) {is_exist = true;break;}
+                                        }
+                                        if(!is_exist) {index = i;}
+                                    }
+                                    outer_wall2.clear();
+                                    Polygons outer_wall2;
+                                    if(index == (int)outer_wall3.size() -1 )
+                                    {
+                                        for(size_t i = 0; i < outer_wall3.size() -1; i++)
+                                        {
+                                            outer_wall2.add(outer_wall3[i]);
+                                        }
+                                    } else{
+                                        for(size_t i = (index+1)%outer_wall3.size(); i < outer_wall3.size(); i++)
+                                        {
+                                            outer_wall2.add(outer_wall3[i]);
+                                        }
+                                        for(int i = 0; i < index; i++)
+                                        {
+                                           outer_wall2.add(outer_wall3[i]);
                                         }
                                     }
 
-                                    outer_wall.clear();
-                                    outer_wall.add(outer_wall2[1]);
-                                    outer_wall2.clear();
+                                    outer_wall = outer_wall2;
 
                                     gcode_layer.is_open_poly_line = true;
                                 }

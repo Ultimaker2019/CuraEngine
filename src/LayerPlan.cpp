@@ -916,50 +916,12 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     std::vector<Point> p0s;
     p0s.push_back(p0);
 
-    if(mesh.settings.get<bool>("enable_single_line_test") && is_open_poly_line && start_idx== wall.size() - 1)
-    {
-        for (unsigned int point_idx = wall.size() - 2; point_idx >= 0; point_idx--)
-        {
-            if(point_idx == -1) break;
-            const Point& p1 = wall[(point_idx) % wall.size()];
-            const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-
-            if (!bridge_wall_mask.empty())
-            {
-                computeDistanceToBridgeStart((point_idx + 1) % wall.size());
-            }
-
-            if (flow >= wall_min_flow)
-            {
-                if (first_line || travel_required)
-                {
-                    addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
-                    first_line = false;
-                    travel_required = false;
-                }
-                if (is_small_feature)
-                {
-                    constexpr bool spiralize = false;
-                    addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
-                }
-                else
-                {
-                    addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
-                }
-            }
-            else
-            {
-                travel_required = true;
-            }
-            p0 = p1;
-        }
-    } else
     {
         for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
         {
             const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
-            const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-
+            float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+            if(flow  < 0.000001) flow = flow_ratio;
             if (!bridge_wall_mask.empty())
             {
                 computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
@@ -991,12 +953,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         }
     }
 
-    if(!mesh.settings.get<bool>("enable_single_line_test") && is_open_poly_line)
-    {
-        is_open_poly_line = false;
-    }
-
-    if (!is_open_poly_line && wall.size() > 2)
+    if (wall.size() > 2)
     {
         const Point& p1 = wall[start_idx];
         const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
@@ -1060,9 +1017,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     {
         if(mesh.settings.get<bool>("enable_single_line_test"))
         {
-            last_planned_position = p0;
+            //last_planned_position = p0;
+        } else {
+            logWarning("WARNING: line added as polygon! (LayerPlan)\n");
         }
-        logWarning("WARNING: line added as polygon! (LayerPlan)\n");
     }
 }
 
@@ -1072,9 +1030,15 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     {
         LineOrderOptimizer lineOrderOptimizer(getLastPlannedPositionOrStartingPosition());
         lineOrderOptimizer.setSingleLineTest(true);
-        lineOrderOptimizer.addPolygon(walls[0]);
+        for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
+        {
+            lineOrderOptimizer.addPolygon(walls[poly_idx]);
+        }
         lineOrderOptimizer.optimize();
-        addWall(walls[0], lineOrderOptimizer.polyStart[0], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        for (unsigned int poly_idx : lineOrderOptimizer.polyOrder)
+        {
+            addWall(walls[poly_idx], lineOrderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        }
     } else
     {
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);

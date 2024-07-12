@@ -242,6 +242,42 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
     loc_to_line = nullptr;
 
+    if(is_single_line_test)
+    {
+        int best_poly_idx = -1;
+        float best_poly_dist = std::numeric_limits<float>::infinity();
+        for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+        {
+            ConstPolygonRef poly = *polygons[poly_idx];
+            float dist = vSize2f(poly[0] - startPoint);
+            if (dist < best_poly_dist)
+            {
+                best_poly_idx = poly_idx;
+                best_poly_dist = dist;
+            }
+        }
+
+        Polygons polygons_tmp;
+        for(int i = best_poly_idx; i < polygons.size(); i++)
+        {
+            ConstPolygonRef poly = *polygons[i];
+            polygons_tmp.add(poly);
+            polyOrder.push_back(i);
+            if(is_single_line_test) polyStart.push_back(0);
+        }
+
+        for(int i = 0; i < best_poly_idx; i++)
+        {
+            ConstPolygonRef poly = *polygons[i];
+            polygons_tmp.add(poly);
+            polyOrder.push_back(i);
+            if(is_single_line_test) polyStart.push_back(0);
+        }
+
+        polygons.clear();
+        addPolygons(polygons_tmp);
+    }
+    if(!is_single_line_test)
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best_point_idx = -1;
@@ -256,28 +292,17 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 best_point_dist = dist;
             }
         }
-        if(is_single_line_test && polygons.size() == 1)
-        {
-            int poly_size = poly.size();
-            if(best_point_idx != 0 && best_point_idx != poly_size - 1)
-            {
-                float dist1 = vSize2f(startPoint - poly[0]);
-                float dist2 = vSize2f(startPoint - poly[poly_size - 1]);
-                if(dist1 >= dist2)
-                {
-                    best_point_idx = poly_size - 1;
-                } else
-                {
-                    best_point_idx = 0;
-                }
-            }
-        } 
         polyStart.push_back(best_point_idx);
 
         assert(poly.size() == 2);
 
         line_bucket_grid.insert(poly[0], poly_idx);
         line_bucket_grid.insert(poly[1], poly_idx);
+    }
+
+    if (is_single_line_test)
+    {
+        return;
     }
 
     // a map with an entry for each chain end discovered
