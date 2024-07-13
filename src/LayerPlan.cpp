@@ -912,7 +912,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     bool first_line = true;
 
     Point p0 = wall[start_idx];
-    int p0s_index = 0;
+    /*int p0s_index = 0;*/
     std::vector<Point> p0s;
     p0s.push_back(p0);
 
@@ -921,7 +921,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         {
             const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
             float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
-            if(flow  < 0.000001) flow = flow_ratio;
+            if(mesh.settings.get<bool>("enable_single_line_test") && is_open_poly_line) flow = flow_ratio;
             if (!bridge_wall_mask.empty())
             {
                 computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
