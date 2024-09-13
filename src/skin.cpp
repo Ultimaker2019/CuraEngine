@@ -3,7 +3,7 @@
 
 namespace cura {
 
-void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
+void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap, int isTopBottomSeparated)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -21,6 +21,31 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
             upskin.add(thinWalls);
             downskin.add(thinWalls);
         }
+
+        if(1 == isTopBottomSeparated)
+        {
+            if (static_cast<int>(downSkinCount - layerNr) >= 0)
+            {
+                SliceLayer* layer2 = &storage.layers[layerNr];
+                for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
+                {
+                    if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
+                        downskin = downskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
+                }
+                part->skinOutline = upskin.unionPolygons(downskin);
+            }
+            if (static_cast<int>(layerNr) < static_cast<int>(storage.layers.size()) && static_cast<int>(layerNr) >= static_cast<int>(storage.layers.size() - upSkinCount))
+            {
+                SliceLayer* layer2 = &storage.layers[layerNr];
+                for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
+                {
+                    if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
+                        upskin = upskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
+                }
+                part->skinOutline = upskin.unionPolygons(downskin);
+            }
+        } else if(0 == isTopBottomSeparated)
+        {
         if (static_cast<int>(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
@@ -42,6 +67,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
         
         part->skinOutline = upskin.unionPolygons(downskin);
 
+        }
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
         {

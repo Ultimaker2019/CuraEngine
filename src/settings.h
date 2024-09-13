@@ -249,6 +249,7 @@ public:
     int isEncryptGcode;
 
     int nozzleType;
+    int isTopBottomSeparated;
 
 };
 

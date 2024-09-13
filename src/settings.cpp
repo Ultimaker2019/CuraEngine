@@ -154,6 +154,8 @@ ConfigSettings::ConfigSettings()
 
     SETTING(nozzleType, 0);
 
+    SETTING(isTopBottomSeparated, 0);
+
     startCode =
             "M109 S210     ;Heatup to 210C\n"
             "G21           ;metric values\n"
